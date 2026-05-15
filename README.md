@@ -86,32 +86,6 @@ bash setup-vmware-shared-folder.sh                 # tuvastab nime automaatselt
 bash setup-vmware-shared-folder.sh SharedVM        # määra nimi käsitsi
 ```
 
-Ilma argumendita tuvastab skript `/mnt/hgfs` sisust jagamise nime
-automaatselt (kui ainult üks olemas). Mitme jagamise puhul kuvab
-listi ja palub uuesti nimega käivitada.
-
-Skript on idempotentne ja iseparandav — võid uuesti käivitada kui
-midagi muutus:
-- Lisab fstab-rea ainult kui veel pole
-- Eemaldab eelmistest käivitustest kuhjunud `/mnt/hgfs` monteerimised
-- Värskendab sümbollinki, kui jagamise nimi muutus (eemaldab vana
-  `~/Shared` ja loob uue `~/<jagamise-nimi>`)
-
-Pärast valmimist on jagatud kaust kättesaadav:
-- `/mnt/hgfs/<jagamise-nimi>` (täielik tee)
-- `~/<jagamise-nimi>` (sümbollink kodukaustas, näha ka Files-rakenduses)
-
-### Probleemilahendus
-
-- **`Error -107 cannot open connection`** — host ei paku jagamist.
-  Kontrolli VMware Settings: kas kaust on listis, kas "Always enabled"
-  on peal, kas VM oli enne seadistust **päriselt powered off**, mitte
-  suspendis.
-- **`/mnt/hgfs` on tühi** — sama põhjus. Reinstall ka aitab:
-  `sudo apt install --reinstall open-vm-tools open-vm-tools-desktop`
-- **`mount | grep hgfs` näitab mitut rida** — käivita skripti uuesti,
-  see puhastab kuhjunud kihid. Või lihtsalt reboot.
-
 ---
 
 ## Ekraanisäästja keelamine — Ubuntu/GNOME
