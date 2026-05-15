@@ -58,7 +58,7 @@ Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 
 ---
 
-## VMware Shared Folder — Ubuntu pool
+## VMware Shared Folder
 
 Paigaldab open-vm-tools'i, seadistab `/etc/fstab` rea, monteerib
 jagatud kausta ja loob sümbollingi kodukausta.
