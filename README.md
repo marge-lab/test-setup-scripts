@@ -79,9 +79,11 @@ VM peab olema **välja lülitatud** (mitte suspendis):
 ### 2. VM-i pool (Ubuntu, skriptiga)
 
 ```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-vmware-shared-folder.sh
 chmod +x setup-vmware-shared-folder.sh
-./setup-vmware-shared-folder.sh                 # tuvastab nime automaatselt
-./setup-vmware-shared-folder.sh SharedVM        # määra nimi käsitsi
+bash setup-vmware-shared-folder.sh                 # tuvastab nime automaatselt
+# või:
+bash setup-vmware-shared-folder.sh SharedVM        # määra nimi käsitsi
 ```
 
 Ilma argumendita tuvastab skript `/mnt/hgfs` sisust jagamise nime
@@ -118,8 +120,9 @@ Linux VM-id (eriti VMware-s) kipuvad ekraanisäästja tõttu hanguma.
 Skript keelab kõik seotud GNOME seaded korraga ja kontrollib tulemused.
 
 ```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/disable-screensaver.sh
 chmod +x disable-screensaver.sh
-./disable-screensaver.sh
+bash disable-screensaver.sh
 ```
 
 Seadistab:
