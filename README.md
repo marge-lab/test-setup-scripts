@@ -7,6 +7,7 @@ testimistöö jaoks.
 |---|---|---|
 | [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus | Ubuntu |
 | [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus | Ubuntu, macOS |
+| [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus | Ubuntu |
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
 | [`disable-screensaver.sh`](disable-screensaver.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
 
@@ -41,6 +42,20 @@ bash setup-web-eid-java.sh
 Java-skript vajab ngrok auth tokenit (küsitakse sammus 3/7). Tee
 endale tasuta konto ja kopeeri token:
 <https://dashboard.ngrok.com/get-started/your-authtoken>
+
+## .NET — Ubuntu
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.sh
+chmod +x setup-web-eid-dotnet.sh
+bash setup-web-eid-dotnet.sh
+```
+
+Skript käivitab `dotnet run`-i vaikimisi **`Development`**-režiimis
+(ASPNETCORE_ENVIRONMENT default-väärtus). See režiim toetab **test
+ID-kaartidega** testimist (`~/.digidocpp/tsl/EE_T.xml` lubab test-CA-d).
+
+Vajadusel küsib skript sudo parooli (`libdigidocpp-csharp` paigaldamiseks).
 
 ## VMware Ubuntu VM-il PHP + Java koos
 
