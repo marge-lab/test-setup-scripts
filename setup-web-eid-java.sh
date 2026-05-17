@@ -403,10 +403,69 @@ if [ "$APP_OK" -ne 1 ]; then
   exit 1
 fi
 
+# ── Live-logi monitooring eraldi terminaliaknas ────────────
+LOG_TAIL_HELPER="$TOOLS_DIR/log-tail-helper.sh"
+cat > "$LOG_TAIL_HELPER" <<HELPER_EOF
+#!/bin/bash
+G='\033[1;32m'; Y='\033[1;33m'; B='\033[1;34m'; N='\033[0m'
+clear
+echo -e "\${G}================================================================\${N}"
+echo -e "\${G}  WebEid Java — LIVE LOGI\${N}"
+echo -e "\${G}================================================================\${N}"
 echo ""
-echo "=== Paigaldus valmis ==="
-echo "Ava brauseris:  $NGROK_URL"
-echo "App log:        tail -f $APP_LOG"
-echo "ngrok log:      tail -f $NGROK_LOG"
+echo -e "\${Y}  Ava brauseris:\${N}  ${NGROK_URL}"
+echo -e "\${Y}  App log:\${N}        ${APP_LOG}"
+echo -e "\${Y}  ngrok log:\${N}      ${NGROK_LOG}"
+echo -e "\${Y}  ngrok inspector:\${N} http://127.0.0.1:4040"
 echo ""
-echo "Peatamiseks:    kill \$(cat $APP_PID_FILE) \$(cat $NGROK_PID_FILE)"
+echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
+echo -e "\${B}  Ctrl+C või sulge aken kui lõpetad.\${N}"
+echo ""
+echo "----------------------------------------------------------------"
+tail -n 0 -f "${APP_LOG}"
+HELPER_EOF
+chmod +x "$LOG_TAIL_HELPER"
+
+# resolve_term_name juba defineeritud ülal sammus 3
+opened_log=0
+for term in x-terminal-emulator gnome-terminal ptyxis konsole xfce4-terminal alacritty kitty xterm kgx; do
+  if command -v "$term" >/dev/null 2>&1; then
+    real_term=$(resolve_term_name "$term" || echo "$term")
+    case "$real_term" in
+      gnome-terminal*|ptyxis*)
+        "$term" -- "$LOG_TAIL_HELPER" >/dev/null 2>&1 &
+        ;;
+      kitty*)
+        "$term" "$LOG_TAIL_HELPER" >/dev/null 2>&1 &
+        ;;
+      *)
+        "$term" -e "$LOG_TAIL_HELPER" >/dev/null 2>&1 &
+        ;;
+    esac
+    opened_log=1
+    break
+  fi
+done
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║                  PAIGALDUS VALMIS                              ║"
+echo "╠════════════════════════════════════════════════════════════════╣"
+echo "║                                                                ║"
+printf "║  Ava brauseris:    %-44s║\n" "$NGROK_URL"
+echo "║                                                                ║"
+echo "║  ngrok inspector:  http://127.0.0.1:4040                       ║"
+echo "║                                                                ║"
+if [ "$opened_log" -eq 1 ]; then
+  echo "║  Live logi:        AVATUD ERALDI TERMINALIAKNAS                ║"
+else
+  echo "║  Live logi:        ei suutnud terminali avada                  ║"
+  printf "║  Käivita käsitsi:  tail -f %-36s║\n" "$APP_LOG"
+fi
+echo "║                                                                ║"
+echo "║  Peatamiseks:                                                  ║"
+printf "║    kill \$(cat %s)              ║\n" "$APP_PID_FILE"
+printf "║    kill \$(cat %s)                  ║\n" "$NGROK_PID_FILE"
+echo "║                                                                ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
