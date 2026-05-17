@@ -6,8 +6,9 @@ testimistöö jaoks.
 | Skript | Otstarve | Platvorm |
 |---|---|---|
 | [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus | Ubuntu |
-| [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus | Ubuntu, macOS |
-| [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus | Ubuntu |
+| [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (ngrok-iga) | Ubuntu, macOS |
+| [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (lokaalne) | Ubuntu |
+| [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok-tunnel (avalik HTTPS) | Ubuntu |
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
 | [`disable-screensaver.sh`](disable-screensaver.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
 
@@ -43,7 +44,7 @@ Java-skript vajab ngrok auth tokenit (küsitakse sammus 3/7). Tee
 endale tasuta konto ja kopeeri token:
 <https://dashboard.ngrok.com/get-started/your-authtoken>
 
-## .NET — Ubuntu
+## .NET — Ubuntu (lokaalne, HTTPS localhost:44391)
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.sh
@@ -56,6 +57,54 @@ Skript käivitab `dotnet run`-i vaikimisi **`Development`**-režiimis
 ID-kaartidega** testimist (`~/.digidocpp/tsl/EE_T.xml` lubab test-CA-d).
 
 Vajadusel küsib skript sudo parooli (`libdigidocpp-csharp` paigaldamiseks).
+
+## .NET — Ubuntu (remote, ngrok-tunneliga)
+
+Sama .NET näiterakendus, aga avalikult internetist kättesaadav ngrok-iga
+— sobib näiteks veebibrauseri-eksperdi remote-testimiseks mobiilseadmest.
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-remote.sh
+chmod +x setup-web-eid-dotnet-remote.sh
+bash setup-web-eid-dotnet-remote.sh
+```
+
+Erinevus lokaalsest skriptist:
+
+- Paigaldab lisaks **ngrok**-i ja küsib auth tokenit
+  (<https://dashboard.ngrok.com/get-started/your-authtoken>)
+- Rakendus kuulab **HTTP-na** `0.0.0.0:8080` — ngrok teeb HTTPS-i
+- `ASPNETCORE_ENVIRONMENT=Production` (kohustuslik, et `UseForwardedHeaders`
+  loeks ngrok-i `X-Forwarded-Proto` header-it)
+- Test ID-kaardi tugi tuleb kahest patch-ist:
+  - `Startup.cs`: `LoadTrustedCaCertificatesFromDisk(true)` — auth jaoks
+  - `~/.digidocpp/digidocpp.conf` (test-TSL URL + cert + TSA) — signimise jaoks
+- `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
+
+## Live-logi aken — sulgemine ja kopeerimine
+
+Kõik `setup-web-eid-*.sh` skriptid avavad lõpus eraldi terminaliakna live-logiga
+(`tail -f` rakenduse logi peal). Käitumine sellele:
+
+| Tegevus | Mis juhtub |
+|---|---|
+| **Akna X-nupp** (üks klikk) | Sulgeb logi-akna **JA** tapab rakenduse + ngrok-tunneli ühe klikiga. Java, .NET-lokaalne ja .NET-remote skriptidel. PHP erand: Apache jääb jooksma (system-teenus). |
+| **Ctrl+C logi-aknas** | **Ignoreeritakse** — Ctrl+C ei tapa midagi, et saaksid teksti (nt ngrok URL-i) kopeerida. Paljud terminal-id (Windows Terminal, VS Code, GNOME Terminal valitud teksti puhul) mappivad Ctrl+C kopeerimiseks. |
+
+PHP-skripti juures sulgeb X-nupp ainult tail-i. Apache peatamiseks eraldi:
+
+```bash
+sudo systemctl stop apache2
+```
+
+Kui sulgesid logi-akna vananenud skripti versiooniga (kus X-nupp tapab ainult
+tail-i) ja taustal on rakendus + ngrok endiselt jooksmas, saad need ühe
+käsuga puhtaks teha (PID-i pole vaja teada):
+
+```bash
+pkill -f "dotnet run"; pkill -f ngrok    # .NET-rakendus + ngrok
+pkill -f "spring-boot:run"; pkill -f ngrok    # Java-rakendus + ngrok
+```
 
 ## VMware Ubuntu VM-il PHP + Java koos
 

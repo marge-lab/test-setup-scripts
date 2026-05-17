@@ -95,11 +95,21 @@ echo -e "${Y}  Ava brauseris:${N}  https://localhost"
 echo -e "${Y}  Logid:${N}          /var/log/apache2/access.log + error.log"
 echo ""
 echo -e "${B}  Iga päring (auth/sign/cert) ilmub allpool reaalajas.${N}"
-echo -e "${B}  Ctrl+C või sulge aken kui lõpetad.${N}"
+echo -e "${B}  Sulge aken X-nupuga → sulgub logi-aken.${N}"
+echo -e "${B}  Apache JÄÄB JOOKSMA (system-teenus). Peatamiseks: sudo systemctl stop apache2${N}"
+echo -e "${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida.)${N}"
 echo -e "${B}  NB: kui küsib sudo parooli, sisesta — Apache logid on root-omanduses.${N}"
 echo ""
 echo "----------------------------------------------------------------"
-sudo tail -n 0 -f /var/log/apache2/access.log /var/log/apache2/error.log
+
+# X-nupp (SIGHUP) tapab sudo+tail-i. Apache ise jääb tööle (system-teenus,
+# võib teisi rakendusi teenindada). Apache peatamine ei kuulu siia.
+# SIGINT (Ctrl+C) ignoreeritakse, et kopeerimine töötaks.
+trap "" INT
+trap 'kill $(jobs -p) 2>/dev/null; exit 0' TERM HUP
+
+sudo tail -n 0 -f /var/log/apache2/access.log /var/log/apache2/error.log &
+wait
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
 

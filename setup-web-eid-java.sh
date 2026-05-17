@@ -419,10 +419,25 @@ echo -e "\${Y}  ngrok log:\${N}      ${NGROK_LOG}"
 echo -e "\${Y}  ngrok inspector:\${N} http://127.0.0.1:4040"
 echo ""
 echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
-echo -e "\${B}  Ctrl+C või sulge aken kui lõpetad.\${N}"
+echo -e "\${B}  Sulge aken X-nupuga → sulgub KÕIK ühe klikiga: app + ngrok + logi.\${N}"
+echo -e "\${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida — nt ngrok URL-i.)\${N}"
 echo ""
 echo "----------------------------------------------------------------"
-tail -n 0 -f "${APP_LOG}"
+
+# Ühe-tegevuse sulgemine: X-nupp (SIGHUP) tapab tail-i, Java-rakenduse JA
+# ngrok-tunneli. Kasutaja ei pea eraldi kill-käske jooksutama.
+# SIGINT (Ctrl+C) ignoreeritakse, et kopeerimine töötaks.
+cleanup() {
+  kill \$(jobs -p) 2>/dev/null
+  [ -f "${APP_PID_FILE}" ] && kill \$(cat "${APP_PID_FILE}") 2>/dev/null
+  [ -f "${NGROK_PID_FILE}" ] && kill \$(cat "${NGROK_PID_FILE}") 2>/dev/null
+  exit 0
+}
+trap '' INT
+trap cleanup TERM HUP
+
+tail -n 0 -f "${APP_LOG}" &
+wait
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
 

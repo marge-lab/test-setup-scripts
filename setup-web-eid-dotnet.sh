@@ -224,10 +224,23 @@ echo -e "\${Y}  App log:\${N}        ${APP_LOG}"
 echo ""
 echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
 echo -e "\${B}  TSL signature spam on filtreeritud välja.\${N}"
-echo -e "\${B}  Ctrl+C või sulge aken kui lõpetad.\${N}"
+echo -e "\${B}  Sulge aken X-nupuga → sulgub KÕIK ühe klikiga: app + logi.\${N}"
+echo -e "\${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida.)\${N}"
 echo ""
 echo "----------------------------------------------------------------"
-tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24'
+
+# Ühe-tegevuse sulgemine: X-nupp (SIGHUP) tapab tail-i JA dotnet-rakenduse.
+# SIGINT (Ctrl+C) ignoreeritakse, et kopeerimine töötaks.
+cleanup() {
+  kill \$(jobs -p) 2>/dev/null
+  [ -f "${APP_PID_FILE}" ] && kill \$(cat "${APP_PID_FILE}") 2>/dev/null
+  exit 0
+}
+trap '' INT
+trap cleanup TERM HUP
+
+tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24' &
+wait
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
 

@@ -177,14 +177,30 @@ else
   echo "HOIATUS: Startup.cs vorming muutunud, ei leia LoadTrustedCaCertificatesFromDisk kõnet." >&2
 fi
 
-# NB! DigiDocConfiguration.cs jätame puutumata. Varasem `if (true)` patch
-# tekitas libdigidocpp-s std::system_error crash-i ("Resource temporarily
-# unavailable"). Allkirjastamine vajab põhjalikumat lähenemist
-# (digidocpp.conf-i kaudu) — praeguses skriptis töötab login, sign mitte.
+# Startup.cs middleware-i EI patchi — Production-mode upstream-i kood
+# (UseHsts + UseForwardedHeaders else-harus) töötab ngrok-iga, login õnnestub.
+#
+# DigiDocConfiguration.cs patch (samm 4c) — laienda `if (env.IsDevelopment())`
+# tingimust env-muutujaga `WEBEID_USE_TEST_TSL=true`, et test-TSL setterid
+# (`setTSLUrl/setTSLCert/setTSUrl`) jõustuks ka Production-modes.
+#
+# digidocpp.conf-i kaudu seda EI saa teha: libdigidocpp XmlConf.cpp toetab
+# ainult `tsl.autoupdate`, `tsl.cache`, `tsl.onlineDigest`, `tsl.timeOut`
+# parameetreid — `tsl.url` ja `tsl.cert` on hardcoded `tslcerts.h`-s ja
+# saab override-da AINULT C++ API setteritega. Seetõttu peame source-patchi.
 DIGIDOC_CONF_CS="$EXAMPLE_DIR/Signing/DigiDocConfiguration.cs"
-if grep -q 'if (true) /\* Patched' "$DIGIDOC_CONF_CS"; then
-  echo "Eemaldan vana DigiDocConfiguration patch-i (crashitav)..."
-  sed -i 's|if (true) /\* Patched: force test TSL config \*/|if (env.IsDevelopment())|' "$DIGIDOC_CONF_CS"
+PATCH_NEW='if (env.IsDevelopment() || Environment.GetEnvironmentVariable("WEBEID_USE_TEST_TSL") == "true") /* Patched: remote test-TSL flag */'
+if grep -qF "$PATCH_NEW" "$DIGIDOC_CONF_CS"; then
+  echo "OK: DigiDocConfiguration.cs juba patch-itud (WEBEID_USE_TEST_TSL flag)"
+elif grep -q 'if (env\.IsDevelopment())' "$DIGIDOC_CONF_CS"; then
+  echo "Patch-in DigiDocConfiguration.cs: lisan WEBEID_USE_TEST_TSL flag-i..."
+  sed -i "s@if (env\.IsDevelopment())@${PATCH_NEW}@" "$DIGIDOC_CONF_CS"
+  if ! grep -qF "$PATCH_NEW" "$DIGIDOC_CONF_CS"; then
+    echo "VIGA: DigiDocConfiguration.cs patch ei õnnestunud — upstream'i vorming võis muutuda." >&2
+    exit 1
+  fi
+else
+  echo "HOIATUS: DigiDocConfiguration.cs vorming muutunud — ei leia 'if (env.IsDevelopment())' kõnet." >&2
 fi
 
 # ── 5. ngrok ──────────────────────────────────────────────
@@ -286,6 +302,28 @@ mkdir -p ~/.digidocpp/tsl
 touch ~/.digidocpp/tsl/EE_T.xml
 echo "~/.digidocpp/tsl/EE_T.xml OK (test ID-kaardi tugi)"
 
+# Defensiivne: kui kunagi varem on tühi ~/.digidocpp/tsl/EE.xml maha jäänud
+# (nt eelnev katse), eemalda see. Libdigidocpp eeldab kas valiidset XML-i
+# või et faili pole — tühi fail annab "Start tag expected" parser-vea ja
+# jätab TSL store nulli ("Loaded 0 certificates into TSL certificate store").
+if [ -f ~/.digidocpp/tsl/EE.xml ] && [ ! -s ~/.digidocpp/tsl/EE.xml ]; then
+  echo "Eemaldan tühja ~/.digidocpp/tsl/EE.xml (lõhuks TSL init-i)"
+  rm ~/.digidocpp/tsl/EE.xml
+fi
+
+# digidocpp.conf-i ei kasutame — libdigidocpp ei toeta tsl.url ega tsl.cert
+# parameetreid (need on hardcoded tslcerts.h-s, override ainult C++ API kaudu).
+# Test-TSL setterid kutsutakse DigiDocConfiguration.cs-st (vt patch sammus 4c)
+# kui WEBEID_USE_TEST_TSL=true env-muutuja on seatud.
+#
+# Eemalda vana digidocpp.conf, kui see varasemast skripti versioonist maha
+# jäänud — segab libdigidocpp init-i tühjade param-väärtustega.
+if [ -f "$HOME/.digidocpp/digidocpp.conf" ] && \
+   grep -q "open-eid.github.io/test-TL" "$HOME/.digidocpp/digidocpp.conf" 2>/dev/null; then
+  echo "Eemaldan vana ~/.digidocpp/digidocpp.conf (eelnev skripti versioon — ei toiminud)"
+  rm "$HOME/.digidocpp/digidocpp.conf"
+fi
+
 if ! dotnet restore "$SLN" > "$BUILD_LOG" 2>&1; then
   echo "VIGA: dotnet restore kukus. Viimased 40 rida logist:" >&2
   tail -40 "$BUILD_LOG" >&2
@@ -372,14 +410,22 @@ fi
 #
 # ASPNETCORE_ENVIRONMENT=Production — kohustuslik ngrok-i jaoks. Upstream
 # Startup.cs lülitab `UseForwardedHeaders()` (mis loeb `X-Forwarded-Proto`
-# header-i) sisse AINULT prod-modes. Dev-modes oleks `UseHttpsRedirection()`
-# aktiivne, mis lõhuks ngrok-i (HTTP→HTTPS redirect-loop). Test-kaardid
-# töötavad ikka, kuna EE_T.xml flag pole mode-sõltuv.
+# header-i) sisse AINULT mitte-Dev-modes. Dev-modes oleks `UseHttpsRedirection()`
+# aktiivne, mis lõhuks ngrok-i (HTTP→HTTPS redirect-loop). LISAKS Dev-mode
+# katsetus lõpetas AuthTokenSignatureValidationException-iga login-flow's.
+#
+# Test-kaardi tugi tuleb env-mode-st EI sõltu:
+# - Auth: Startup.cs patch sammus [4/8] sunnib `LoadTrustedCaCertificatesFromDisk(true)`
+#         → test CA-d (Certificates/Dev/*.cer) laetakse alati, ka Production-modes.
+# - Sign: DigiDocConfiguration.cs patch sammus [4/8] 4c laiendab `if`-tingimust
+#         env-muutujaga `WEBEID_USE_TEST_TSL=true` (allpool) → setTSLUrl/Cert/TSUrl
+#         setterid kutsutakse ka Production-modes.
 #
 # --no-launch-profile keelab launchSettings.json sätted (mis muidu paneks
 # rakenduse kuulama https://localhost:44391, mis ngrok-i jaoks ei sobi).
 nohup env ASPNETCORE_URLS="http://0.0.0.0:$APP_PORT" \
         ASPNETCORE_ENVIRONMENT="Production" \
+        WEBEID_USE_TEST_TSL="true" \
   dotnet run --project "$CSPROJ" --no-launch-profile \
   > "$APP_LOG" 2>&1 &
 echo $! > "$APP_PID_FILE"
@@ -428,10 +474,29 @@ echo -e "\${Y}  ngrok inspector:\${N} http://127.0.0.1:4040"
 echo ""
 echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
 echo -e "\${B}  TSL signature spam on filtreeritud välja.\${N}"
-echo -e "\${B}  Ctrl+C või sulge aken kui lõpetad.\${N}"
+echo -e "\${B}  Sulge aken X-nupuga → sulgub KÕIK ühe klikiga: app + ngrok + logi.\${N}"
+echo -e "\${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida — nt ngrok URL-i.)\${N}"
 echo ""
 echo "----------------------------------------------------------------"
-tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24'
+
+# Ühe-tegevuse sulgemine: kui kasutaja klõpsab X-nuppu, terminal saadab
+# SIGHUP — cleanup tapab tail-i, dotnet-rakenduse JA ngrok-tunneli.
+# Vastasel juhul peaks kasutaja eraldi tegema kill-käske teises terminalis.
+#
+# SIGINT (Ctrl+C) ignoreeritakse — paljud terminal-id mappivad Ctrl+C
+# kopeerimiseks (Windows Terminal, VS Code, GNOME Terminal valitud teksti
+# puhul). Hoiame seda puutumata, et kasutaja saaks ngrok URL-i kopeerida.
+cleanup() {
+  kill \$(jobs -p) 2>/dev/null
+  [ -f "${APP_PID_FILE}" ] && kill \$(cat "${APP_PID_FILE}") 2>/dev/null
+  [ -f "${NGROK_PID_FILE}" ] && kill \$(cat "${NGROK_PID_FILE}") 2>/dev/null
+  exit 0
+}
+trap '' INT
+trap cleanup TERM HUP
+
+tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24' &
+wait
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
 
