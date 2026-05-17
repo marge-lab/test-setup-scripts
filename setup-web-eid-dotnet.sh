@@ -208,8 +208,72 @@ for i in {1..20}; do
   sleep 2
 done
 
+# ── Live-logi monitooring eraldi terminaliaknas ────────────
+APP_LOG="$TOOLS_DIR/dotnet-app.log"
+LOG_TAIL_HELPER="$TOOLS_DIR/log-tail-helper.sh"
+cat > "$LOG_TAIL_HELPER" <<HELPER_EOF
+#!/bin/bash
+G='\033[1;32m'; Y='\033[1;33m'; B='\033[1;34m'; N='\033[0m'
+clear
+echo -e "\${G}================================================================\${N}"
+echo -e "\${G}  WebEid .NET — LIVE LOGI\${N}"
+echo -e "\${G}================================================================\${N}"
 echo ""
-echo "=== Paigaldus valmis ==="
-echo "Ava brauseris: https://localhost:44391"
-echo "Logi:          tail -f $TOOLS_DIR/dotnet-app.log"
-echo "Peatamiseks:   kill \$(cat $APP_PID_FILE)"
+echo -e "\${Y}  Ava brauseris:\${N}  https://localhost:44391"
+echo -e "\${Y}  App log:\${N}        ${APP_LOG}"
+echo ""
+echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
+echo -e "\${B}  TSL signature spam on filtreeritud välja.\${N}"
+echo -e "\${B}  Ctrl+C või sulge aken kui lõpetad.\${N}"
+echo ""
+echo "----------------------------------------------------------------"
+tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24'
+HELPER_EOF
+chmod +x "$LOG_TAIL_HELPER"
+
+# Terminal-detektsioon (sama muster nagu Java/remote skriptis)
+resolve_term_name() {
+  local cmd path
+  cmd=$(command -v "$1" 2>/dev/null) || return 1
+  path=$(readlink -f "$cmd" 2>/dev/null || echo "$cmd")
+  basename "$path"
+}
+
+opened_log=0
+for term in x-terminal-emulator gnome-terminal ptyxis konsole xfce4-terminal alacritty kitty xterm kgx; do
+  if command -v "$term" >/dev/null 2>&1; then
+    real_term=$(resolve_term_name "$term" || echo "$term")
+    case "$real_term" in
+      gnome-terminal*|ptyxis*)
+        "$term" -- "$LOG_TAIL_HELPER" >/dev/null 2>&1 &
+        ;;
+      kitty*)
+        "$term" "$LOG_TAIL_HELPER" >/dev/null 2>&1 &
+        ;;
+      *)
+        "$term" -e "$LOG_TAIL_HELPER" >/dev/null 2>&1 &
+        ;;
+    esac
+    opened_log=1
+    break
+  fi
+done
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║                  PAIGALDUS VALMIS                              ║"
+echo "╠════════════════════════════════════════════════════════════════╣"
+echo "║                                                                ║"
+echo "║  Ava brauseris:    https://localhost:44391                     ║"
+echo "║                                                                ║"
+if [ "$opened_log" -eq 1 ]; then
+  echo "║  Live logi:        AVATUD ERALDI TERMINALIAKNAS                ║"
+else
+  echo "║  Live logi:        ei suutnud terminali avada                  ║"
+  printf "║  Käivita käsitsi:  tail -f %-36s║\n" "$APP_LOG"
+fi
+echo "║                                                                ║"
+printf "║  Peatamiseks:      kill \$(cat %-26s║\n" "$APP_PID_FILE)"
+echo "║                                                                ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
