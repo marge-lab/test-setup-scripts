@@ -152,7 +152,7 @@ Skript:
      — kinnitab et lokaalne pakett on tegelikult kasutusel
    - **Git haru + commit hash** — auditeeritav
 
-Kasulik, kui pead testima konkreetse arendaja PR-i enne mergimist.
+Kasulik, kui pead testima konkreetse arendaja PR-i enne main-i ühendamist.
 
 </details>
 
