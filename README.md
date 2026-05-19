@@ -104,30 +104,35 @@ Erinevus lokaalsest skriptist:
   - `~/.digidocpp/digidocpp.conf` (test-TSL URL + cert + TSA) — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
 
-### Live-logi aken — sulgemine ja kopeerimine
+### Live-logi aken — sulgemine, taas-avamine, peatamine
 
 Kõik `setup-web-eid-*.sh` skriptid avavad lõpus eraldi terminaliakna live-logiga
-(`tail -f` rakenduse logi peal). Käitumine sellele:
+(`tail -f` rakenduse logi peal). Käitumine järgib Unix-i tava — **logi-aken on
+viewer, mitte controller**: selle sulgemine ei mõjuta rakendust.
 
 | Tegevus | Mis juhtub |
 |---|---|
-| **Akna X-nupp** (üks klikk) | Sulgeb logi-akna **JA** tapab rakenduse + ngrok-tunneli ühe klikiga. Java, .NET-lokaalne ja .NET-remote skriptidel. PHP erand: Apache jääb jooksma (system-teenus). |
+| **Akna X-nupp** | Sulgeb **AINULT logi-akna**. Rakendus (ja ngrok kui see on) jäävad **taustaks** jooksma. |
 | **Ctrl+C logi-aknas** | **Ignoreeritakse** — Ctrl+C ei tapa midagi, et saaksid teksti (nt ngrok URL-i) kopeerida. Paljud terminal-id (Windows Terminal, VS Code, GNOME Terminal valitud teksti puhul) mappivad Ctrl+C kopeerimiseks. |
 
-PHP-skripti juures sulgeb X-nupp ainult tail-i. Apache peatamiseks eraldi:
+Skripti **lõpu-banneril** ja **logi-akna sees** on selgelt välja kirjutatud:
 
-```bash
-sudo systemctl stop apache2
-```
+1. **Logi uuesti avada** (kui sulgesid akna):
+   ```bash
+   bash ~/tools/log-tail-helper.sh
+   ```
+   Helper-skript jääb kõvakettale, saad iga kord taasavada — kasutab sama
+   logi-faili samade filtritega (TSL-spam .NET-i puhul välja).
 
-Kui sulgesid logi-akna vananenud skripti versiooniga (kus X-nupp tapab ainult
-tail-i) ja taustal on rakendus + ngrok endiselt jooksmas, saad need ühe
-käsuga puhtaks teha (PID-i pole vaja teada):
+2. **Rakenduse + ngrok-i peatamine** — täpsed kill-käsud iga skripti
+   lõpu-banneril näha. Näiteks .NET-remote-il:
+   ```bash
+   kill $(cat ~/tools/dotnet-app.pid)
+   kill $(cat ~/tools/ngrok.pid)
+   ```
 
-```bash
-pkill -f "dotnet run"; pkill -f ngrok    # .NET-rakendus + ngrok
-pkill -f "spring-boot:run"; pkill -f ngrok    # Java-rakendus + ngrok
-```
+PHP-skripti puhul on Apache **system-teenus** (mitte foreground-protsess) —
+seda peatatakse: `sudo systemctl stop apache2`.
 
 ### VMware Ubuntu VM-il PHP + Java koos
 
