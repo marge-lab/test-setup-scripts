@@ -5,10 +5,10 @@ testimistöö jaoks.
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
-| [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus | Ubuntu |
-| [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (ngrok-iga) | Ubuntu, macOS |
-| [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (lokaalne) | Ubuntu |
-| [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok-tunnel (avalik HTTPS) | Ubuntu |
+| [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus (main) | Ubuntu |
+| [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (main, ngrok-iga) | Ubuntu, macOS |
+| [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (main , lokaalne) | Ubuntu |
+| [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus (main) + ngrok-tunnel (avalik HTTPS) | Ubuntu |
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
 | [`disable-screensaver.sh`](disable-screensaver.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
 
