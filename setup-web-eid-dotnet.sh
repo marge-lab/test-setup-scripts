@@ -219,28 +219,25 @@ echo -e "\${G}================================================================\$
 echo -e "\${G}  WebEid .NET — LIVE LOGI\${N}"
 echo -e "\${G}================================================================\${N}"
 echo ""
-echo -e "\${Y}  Ava brauseris:\${N}  https://localhost:44391"
-echo -e "\${Y}  App log:\${N}        ${APP_LOG}"
+echo -e "\${Y}  Ava brauseris:\${N}     https://localhost:44391"
+echo -e "\${Y}  App log:\${N}           ${APP_LOG}"
 echo ""
-echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
-echo -e "\${B}  TSL signature spam on filtreeritud välja.\${N}"
-echo -e "\${B}  Sulge aken X-nupuga → sulgub KÕIK ühe klikiga: app + logi.\${N}"
-echo -e "\${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida.)\${N}"
+echo -e "\${B}  Akna sulgemine:\${N}    X-nupp (sulgeb AINULT akna; app jääb taustaks)"
+echo -e "\${B}                     Ctrl+C ignoreeritakse — saad teksti kopeerida"
 echo ""
+echo -e "\${B}  Logi uuesti avada:\${N} bash ${LOG_TAIL_HELPER}"
+echo ""
+echo -e "\${B}  App peatada:\${N}       kill \\\$(cat ${APP_PID_FILE})"
+echo ""
+echo "  (TSL signature spam on filtreeritud välja.)"
 echo "----------------------------------------------------------------"
 
-# Ühe-tegevuse sulgemine: X-nupp (SIGHUP) tapab tail-i JA dotnet-rakenduse.
-# SIGINT (Ctrl+C) ignoreeritakse, et kopeerimine töötaks.
-cleanup() {
-  kill \$(jobs -p) 2>/dev/null
-  [ -f "${APP_PID_FILE}" ] && kill \$(cat "${APP_PID_FILE}") 2>/dev/null
-  exit 0
-}
+# Ctrl+C ignoreeritakse, et kopeerimine töötaks. X-nupp (SIGHUP) sulgeb
+# AINULT logi-akna — dotnet-rakendust ei puututa (banner näitab kuidas
+# peatada).
 trap '' INT
-trap cleanup TERM HUP
 
-tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24' &
-wait
+tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24'
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
 
@@ -273,20 +270,25 @@ for term in x-terminal-emulator gnome-terminal ptyxis konsole xfce4-terminal ala
 done
 
 echo ""
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                  PAIGALDUS VALMIS                              ║"
-echo "╠════════════════════════════════════════════════════════════════╣"
-echo "║                                                                ║"
-echo "║  Ava brauseris:    https://localhost:44391                     ║"
-echo "║                                                                ║"
+echo "════════════════════════════════════════════════════════════════════"
+echo "  PAIGALDUS VALMIS — .NET (lokaalne)"
+echo "════════════════════════════════════════════════════════════════════"
+echo ""
+echo "  Ava brauseris:    https://localhost:44391"
+echo ""
 if [ "$opened_log" -eq 1 ]; then
-  echo "║  Live logi:        AVATUD ERALDI TERMINALIAKNAS                ║"
+  echo "  Live logi:        AVATUD ERALDI TERMINALIAKNAS"
+  echo "                    X-nupp sulgeb akna (app jääb taustaks)"
 else
-  echo "║  Live logi:        ei suutnud terminali avada                  ║"
-  printf "║  Käivita käsitsi:  tail -f %-36s║\n" "$APP_LOG"
+  echo "  Live logi:        ei suutnud terminali avada"
 fi
-echo "║                                                                ║"
-printf "║  Peatamiseks:      kill \$(cat %-26s║\n" "$APP_PID_FILE)"
-echo "║                                                                ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "  Logi uuesti avada (kui sulgesid akna):"
+echo "    bash $LOG_TAIL_HELPER"
+echo "    (või otse:  tail -n 0 -f $APP_LOG | grep -v 'TSL.cpp:24')"
+echo ""
+echo "  App peatada:"
+echo "    kill \$(cat $APP_PID_FILE)"
+echo ""
+echo "════════════════════════════════════════════════════════════════════"
 echo ""
