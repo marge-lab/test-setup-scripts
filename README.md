@@ -3,18 +3,41 @@
 Paigaldus- ja seadistus-skriptid Linux VM-i kiireks ülesseadmiseks
 testimistöö jaoks.
 
-| Skript | Otstarve | Platvorm |
-|---|---|---|
-| [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus (main) | Ubuntu |
-| [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (main, ngrok-iga) | Ubuntu, macOS |
-| [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (main , lokaalne) | Ubuntu |
-| [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus (main) + ngrok-tunnel (avalik HTTPS) | Ubuntu |
-| [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
-| [`disable-screensaver.sh`](disable-screensaver.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
+Skriptid jagunevad kahte rühma:
+
+1. **Web eID näidisrakendused** — paigaldavad ja käivitavad Web eID
+   eri keelte näiterakendusi (PHP, Java, .NET)
+2. **Muud testimisskriptid** — VMware shared folder, GNOME
+   ekraanisäästja keelamine
 
 ---
 
-## PHP — Ubuntu
+# Web eID näidisrakendused
+
+Need skriptid kloonivad [web-eid](https://github.com/web-eid)
+organisatsioonist vastava `web-eid-authtoken-validation-*` repo,
+ehitavad näiterakenduse ja käivitavad selle. Kõik skriptid avavad
+lõpus eraldi terminaliakna **live-logiga** (rakenduse päringud,
+sertide laadimine, OCSP/TSA tegevused reaalajas).
+
+Web eID näidisrakendused jagunevad omakorda kahte rühma — **main-haru
+skriptid** (upstream-i main-haru testimine) ja **harude testimise
+skriptid** (konkreetse feature-haru testimine enne mergimist).
+
+## Main-haru skriptid
+
+Need käivitavad näiterakenduse upstream-i `main`-harust. Sobib
+"reliisi-testimiseks" — kontrollida, et upstream-i hetkeseisuga
+asjad töötavad.
+
+| Skript | Otstarve | Platvorm |
+|---|---|---|
+| [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus | Ubuntu |
+| [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (ngrok-iga) | Ubuntu, macOS |
+| [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (lokaalne) | Ubuntu |
+| [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok-tunnel (avalik HTTPS) | Ubuntu |
+
+### PHP — Ubuntu
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php.sh
@@ -22,7 +45,7 @@ chmod +x setup-web-eid-php.sh
 bash setup-web-eid-php.sh
 ```
 
-## Java — Ubuntu
+### Java — Ubuntu
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-java.sh
@@ -30,7 +53,7 @@ chmod +x setup-web-eid-java.sh
 bash setup-web-eid-java.sh
 ```
 
-## Java — macOS
+### Java — macOS
 
 ```bash
 curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-java.sh
@@ -38,13 +61,13 @@ chmod +x setup-web-eid-java.sh
 bash setup-web-eid-java.sh
 ```
 
-### Eeldused (Java)
+#### Eeldused (Java)
 
 Java-skript vajab ngrok auth tokenit (küsitakse sammus 3/7). Tee
 endale tasuta konto ja kopeeri token:
 <https://dashboard.ngrok.com/get-started/your-authtoken>
 
-## .NET — Ubuntu (lokaalne, HTTPS localhost:44391)
+### .NET — Ubuntu (lokaalne, HTTPS localhost:44391)
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.sh
@@ -58,7 +81,7 @@ ID-kaartidega** testimist (`~/.digidocpp/tsl/EE_T.xml` lubab test-CA-d).
 
 Vajadusel küsib skript sudo parooli (`libdigidocpp-csharp` paigaldamiseks).
 
-## .NET — Ubuntu (remote, ngrok-tunneliga)
+### .NET — Ubuntu (remote, ngrok-tunneliga)
 
 Sama .NET näiterakendus, aga avalikult internetist kättesaadav ngrok-iga
 — sobib näiteks veebibrauseri-eksperdi remote-testimiseks mobiilseadmest.
@@ -81,7 +104,7 @@ Erinevus lokaalsest skriptist:
   - `~/.digidocpp/digidocpp.conf` (test-TSL URL + cert + TSA) — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
 
-## Live-logi aken — sulgemine ja kopeerimine
+### Live-logi aken — sulgemine ja kopeerimine
 
 Kõik `setup-web-eid-*.sh` skriptid avavad lõpus eraldi terminaliakna live-logiga
 (`tail -f` rakenduse logi peal). Käitumine sellele:
@@ -106,7 +129,7 @@ pkill -f "dotnet run"; pkill -f ngrok    # .NET-rakendus + ngrok
 pkill -f "spring-boot:run"; pkill -f ngrok    # Java-rakendus + ngrok
 ```
 
-## VMware Ubuntu VM-il PHP + Java koos
+### VMware Ubuntu VM-il PHP + Java koos
 
 Kui paigaldad mõlemad näited samasse Ubuntu VM-i, kukub Java
 Maven-ehitus samm 5/7-s OCSP unit-testi peal (VMware NAT-i DNS-hijack
@@ -121,6 +144,59 @@ Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 `sudo systemctl start apache2`.
 
 ---
+
+## Harude testimise skriptid
+
+Need käivitavad näiterakenduse **mitte main-harust**, vaid mõnest
+upstream-i feature-harust — kasutatakse arendajate poolt enne mergimist
+parandatud koodi kontrollimiseks. Skript küsib (või võtab argumendiks)
+haru-nime, kloonib selle, ehitab WebEid library lokaalseks
+NuGet-paketiks (versiooniga `1.2.0-beta1`, et eristuda upstream-i
+1.2.0-st) ja kasutab seda example-app-i ehitamiseks.
+
+| Skript | Otstarve | Platvorm |
+|---|---|---|
+| [`setup-web-eid-dotnet-branch.sh`](setup-web-eid-dotnet-branch.sh) | Web eID .NET näiterakendus suvalisest harust (lokaalne, HTTPS localhost:44391) | Ubuntu |
+
+### .NET haru-testimine — Ubuntu
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.sh
+chmod +x setup-web-eid-dotnet-branch.sh
+
+# Interaktiivne: kuvab harude nimekirja ja küsib valikut
+bash setup-web-eid-dotnet-branch.sh
+
+# Otse haru nime või substring-iga
+bash setup-web-eid-dotnet-branch.sh --branch WE2-1180
+```
+
+Skript:
+
+1. Tõmbab `web-eid-authtoken-validation-dotnet` repo
+2. Laseb valida haru (interaktiivne nimekiri või `--branch` argument)
+3. Ehitab `WebEid.Security` projekti **lokaalseks NuGet-paketiks**
+   versiooniga **`1.2.0-beta1`** (eristub upstream-i 1.2.0-st)
+4. Uuendab example-app-i `.csproj`-i: viite vahetatakse PackageReference
+   `WebEid.Security 1.2.0-beta1` peale
+5. Ehitab + käivitab example-app-i lokaalselt (`https://localhost:44391`)
+6. Pärast valmimist näitab:
+   - **DLL sisemine versioon** (`strings WebEid.Security.dll | grep beta`)
+     — kinnitab et lokaalne pakett on tegelikult kasutusel
+   - **Git haru + commit hash** — auditeeritav
+
+Kasulik, kui pead testima konkreetse arendaja PR-i enne mergimist.
+
+---
+
+# Muud testimisskriptid
+
+Need ei ole Web eID-spetsiifilised vaid üldised Linux VM seadistus-skriptid.
+
+| Skript | Otstarve | Platvorm |
+|---|---|---|
+| [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
+| [`disable-screensaver.sh`](disable-screensaver.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
 
 ## VMware Shared Folder
 
@@ -149,8 +225,6 @@ bash setup-vmware-shared-folder.sh                 # tuvastab nime automaatselt
 # või:
 bash setup-vmware-shared-folder.sh SharedVM        # määra nimi käsitsi
 ```
-
----
 
 ## Ekraanisäästja keelamine — Ubuntu/GNOME
 
