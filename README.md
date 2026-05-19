@@ -162,8 +162,9 @@ NuGet-paketiks (versiooniga `1.2.0-beta1`, et eristuda upstream-i
 | Skript | Otstarve | Platvorm |
 |---|---|---|
 | [`setup-web-eid-dotnet-branch.sh`](setup-web-eid-dotnet-branch.sh) | Web eID .NET näiterakendus suvalisest harust (lokaalne, HTTPS localhost:44391) | Ubuntu |
+| [`setup-web-eid-dotnet-branch-remote.sh`](setup-web-eid-dotnet-branch-remote.sh) | Web eID .NET näiterakendus suvalisest harust + ngrok-tunnel (avalik HTTPS) | Ubuntu |
 
-### .NET haru-testimine — Ubuntu
+### .NET haru-testimine — Ubuntu (lokaalne)
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.sh
@@ -191,6 +192,32 @@ Skript:
    - **Git haru + commit hash** — auditeeritav
 
 Kasulik, kui pead testima konkreetse arendaja PR-i enne mergimist.
+
+### .NET haru-testimine — Ubuntu (remote, ngrok-tunneliga)
+
+Sama haru-testimine, aga ngrok-tunneliga — sobib näiteks PR-i jagamiseks
+arendajaga kaugteel või mobiilseadmest testimiseks.
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch-remote.sh
+chmod +x setup-web-eid-dotnet-branch-remote.sh
+
+bash setup-web-eid-dotnet-branch-remote.sh
+# või konkreetse haruga:
+bash setup-web-eid-dotnet-branch-remote.sh --branch WE2-1180
+```
+
+Erinevus lokaalsest haru-skriptist (sama loogika nagu
+`setup-web-eid-dotnet-remote.sh`-s):
+
+- Paigaldab lisaks **ngrok**-i ja küsib auth tokenit
+- Rakendus kuulab **HTTP-na** `0.0.0.0:8080` — ngrok teeb HTTPS-i
+- `ASPNETCORE_ENVIRONMENT=Production` + `WEBEID_USE_TEST_TSL=true`
+- Test ID-kaardi tugi tuleb kahest source-patch-ist:
+  - `Startup.cs`: `LoadTrustedCaCertificatesFromDisk(true)` — auth jaoks
+  - `DigiDocConfiguration.cs`: laiendab `if`-tingimust `WEBEID_USE_TEST_TSL`
+    env-muutujaga — signimise jaoks
+- `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
 
 ---
 
