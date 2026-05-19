@@ -104,52 +104,6 @@ Erinevus lokaalsest skriptist:
   - `~/.digidocpp/digidocpp.conf` (test-TSL URL + cert + TSA) — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
 
-### Live-logi aken — sulgemine, taas-avamine, peatamine
-
-Kõik `setup-web-eid-*.sh` skriptid avavad lõpus eraldi terminaliakna live-logiga
-(`tail -f` rakenduse logi peal). Käitumine järgib Unix-i tava — **logi-aken on
-viewer, mitte controller**: selle sulgemine ei mõjuta rakendust.
-
-| Tegevus | Mis juhtub |
-|---|---|
-| **Akna X-nupp** | Sulgeb **AINULT logi-akna**. Rakendus (ja ngrok kui see on) jäävad **taustaks** jooksma. |
-| **Ctrl+C logi-aknas** | **Ignoreeritakse** — Ctrl+C ei tapa midagi, et saaksid teksti (nt ngrok URL-i) kopeerida. Paljud terminal-id (Windows Terminal, VS Code, GNOME Terminal valitud teksti puhul) mappivad Ctrl+C kopeerimiseks. |
-
-Skripti **lõpu-banneril** ja **logi-akna sees** on selgelt välja kirjutatud:
-
-1. **Logi uuesti avada** (kui sulgesid akna):
-   ```bash
-   bash ~/tools/log-tail-helper.sh
-   ```
-   Helper-skript jääb kõvakettale, saad iga kord taasavada — kasutab sama
-   logi-faili samade filtritega (TSL-spam .NET-i puhul välja).
-
-2. **Rakenduse + ngrok-i peatamine** — täpsed kill-käsud iga skripti
-   lõpu-banneril näha. Näiteks .NET-remote-il:
-   ```bash
-   kill $(cat ~/tools/dotnet-app.pid)
-   kill $(cat ~/tools/ngrok.pid)
-   ```
-
-PHP-skripti puhul on Apache **system-teenus** (mitte foreground-protsess) —
-seda peatatakse: `sudo systemctl stop apache2`.
-
-### VMware Ubuntu VM-il PHP + Java koos
-
-Kui paigaldad mõlemad näited samasse Ubuntu VM-i, kukub Java
-Maven-ehitus samm 5/7-s OCSP unit-testi peal (VMware NAT-i DNS-hijack
-+ kõrval töötav Apache). Enne Java skripti käivitamist:
-
-```bash
-sudo systemctl stop apache2
-echo "127.0.0.2  invalid.invalid" | sudo tee -a /etc/hosts
-```
-
-Pärast Java näite valmis saamist saad Apache tagasi käima panna:
-`sudo systemctl start apache2`.
-
----
-
 ## Harude testimise skriptid
 
 Need käivitavad näiterakenduse **mitte main-harust**, vaid mõnest
@@ -218,6 +172,51 @@ Erinevus lokaalsest haru-skriptist (sama loogika nagu
   - `DigiDocConfiguration.cs`: laiendab `if`-tingimust `WEBEID_USE_TEST_TSL`
     env-muutujaga — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
+
+## Live-logi aken — sulgemine, taas-avamine, peatamine
+
+Kõik `setup-web-eid-*.sh` skriptid (nii main-haru kui harude testimise)
+avavad lõpus eraldi terminaliakna live-logiga (`tail -f` rakenduse logi peal).
+Käitumine järgib Unix-i tava — **logi-aken on viewer, mitte controller**:
+selle sulgemine ei mõjuta rakendust.
+
+| Tegevus | Mis juhtub |
+|---|---|
+| **Akna X-nupp** | Sulgeb **AINULT logi-akna**. Rakendus (ja ngrok kui see on) jäävad **taustaks** jooksma. |
+| **Ctrl+C logi-aknas** | **Ignoreeritakse** — Ctrl+C ei tapa midagi, et saaksid teksti (nt ngrok URL-i) kopeerida. Paljud terminal-id (Windows Terminal, VS Code, GNOME Terminal valitud teksti puhul) mappivad Ctrl+C kopeerimiseks. |
+
+Skripti **lõpu-banneril** ja **logi-akna sees** on selgelt välja kirjutatud:
+
+1. **Logi uuesti avada** (kui sulgesid akna):
+   ```bash
+   bash ~/tools/log-tail-helper.sh
+   ```
+   Helper-skript jääb kõvakettale, saad iga kord taasavada — kasutab sama
+   logi-faili samade filtritega (TSL-spam .NET-i puhul välja).
+
+2. **Rakenduse + ngrok-i peatamine** — täpsed kill-käsud iga skripti
+   lõpu-banneril näha. Näiteks .NET-remote-il:
+   ```bash
+   kill $(cat ~/tools/dotnet-app.pid)
+   kill $(cat ~/tools/ngrok.pid)
+   ```
+
+PHP-skripti puhul on Apache **system-teenus** (mitte foreground-protsess) —
+seda peatatakse: `sudo systemctl stop apache2`.
+
+## VMware Ubuntu VM-il PHP + Java koos
+
+Kui paigaldad mõlemad näited samasse Ubuntu VM-i, kukub Java
+Maven-ehitus samm 5/7-s OCSP unit-testi peal (VMware NAT-i DNS-hijack
++ kõrval töötav Apache). Enne Java skripti käivitamist:
+
+```bash
+sudo systemctl stop apache2
+echo "127.0.0.2  invalid.invalid" | sudo tee -a /etc/hosts
+```
+
+Pärast Java näite valmis saamist saad Apache tagasi käima panna:
+`sudo systemctl start apache2`.
 
 ---
 
