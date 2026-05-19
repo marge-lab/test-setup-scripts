@@ -413,31 +413,27 @@ echo -e "\${G}================================================================\$
 echo -e "\${G}  WebEid Java — LIVE LOGI\${N}"
 echo -e "\${G}================================================================\${N}"
 echo ""
-echo -e "\${Y}  Ava brauseris:\${N}  ${NGROK_URL}"
-echo -e "\${Y}  App log:\${N}        ${APP_LOG}"
-echo -e "\${Y}  ngrok log:\${N}      ${NGROK_LOG}"
-echo -e "\${Y}  ngrok inspector:\${N} http://127.0.0.1:4040"
+echo -e "\${Y}  Ava brauseris:\${N}     ${NGROK_URL}"
+echo -e "\${Y}  ngrok inspector:\${N}   http://127.0.0.1:4040"
+echo -e "\${Y}  App log:\${N}           ${APP_LOG}"
 echo ""
-echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
-echo -e "\${B}  Sulge aken X-nupuga → sulgub KÕIK ühe klikiga: app + ngrok + logi.\${N}"
-echo -e "\${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida — nt ngrok URL-i.)\${N}"
+echo -e "\${B}  Akna sulgemine:\${N}    X-nupp (sulgeb AINULT akna; app + ngrok jäävad taustaks)"
+echo -e "\${B}                     Ctrl+C ignoreeritakse — saad teksti kopeerida"
+echo ""
+echo -e "\${B}  Logi uuesti avada:\${N} bash ${LOG_TAIL_HELPER}"
+echo ""
+echo -e "\${B}  App + ngrok peatada:\${N}"
+echo -e "\${B}    kill \\\$(cat ${APP_PID_FILE})\${N}"
+echo -e "\${B}    kill \\\$(cat ${NGROK_PID_FILE})\${N}"
 echo ""
 echo "----------------------------------------------------------------"
 
-# Ühe-tegevuse sulgemine: X-nupp (SIGHUP) tapab tail-i, Java-rakenduse JA
-# ngrok-tunneli. Kasutaja ei pea eraldi kill-käske jooksutama.
-# SIGINT (Ctrl+C) ignoreeritakse, et kopeerimine töötaks.
-cleanup() {
-  kill \$(jobs -p) 2>/dev/null
-  [ -f "${APP_PID_FILE}" ] && kill \$(cat "${APP_PID_FILE}") 2>/dev/null
-  [ -f "${NGROK_PID_FILE}" ] && kill \$(cat "${NGROK_PID_FILE}") 2>/dev/null
-  exit 0
-}
+# Ctrl+C ignoreeritakse, et kopeerimine töötaks. X-nupp (SIGHUP) sulgeb
+# AINULT selle logi-akna — taustal jooksvaid Java- ja ngrok-protsesse ei
+# puututa. Kasutaja peatab need eraldi kill-käskudega (banneril näha).
 trap '' INT
-trap cleanup TERM HUP
 
-tail -n 0 -f "${APP_LOG}" &
-wait
+tail -n 0 -f "${APP_LOG}"
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
 
@@ -463,24 +459,27 @@ for term in x-terminal-emulator gnome-terminal ptyxis konsole xfce4-terminal ala
 done
 
 echo ""
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                  PAIGALDUS VALMIS                              ║"
-echo "╠════════════════════════════════════════════════════════════════╣"
-echo "║                                                                ║"
-printf "║  Ava brauseris:    %-44s║\n" "$NGROK_URL"
-echo "║                                                                ║"
-echo "║  ngrok inspector:  http://127.0.0.1:4040                       ║"
-echo "║                                                                ║"
+echo "════════════════════════════════════════════════════════════════════"
+echo "  PAIGALDUS VALMIS — Java"
+echo "════════════════════════════════════════════════════════════════════"
+echo ""
+echo "  Ava brauseris:    $NGROK_URL"
+echo "  ngrok inspector:  http://127.0.0.1:4040"
+echo ""
 if [ "$opened_log" -eq 1 ]; then
-  echo "║  Live logi:        AVATUD ERALDI TERMINALIAKNAS                ║"
+  echo "  Live logi:        AVATUD ERALDI TERMINALIAKNAS"
+  echo "                    X-nupp sulgeb akna (app + ngrok jäävad taustaks)"
 else
-  echo "║  Live logi:        ei suutnud terminali avada                  ║"
-  printf "║  Käivita käsitsi:  tail -f %-36s║\n" "$APP_LOG"
+  echo "  Live logi:        ei suutnud terminali avada"
 fi
-echo "║                                                                ║"
-echo "║  Peatamiseks:                                                  ║"
-printf "║    kill \$(cat %s)              ║\n" "$APP_PID_FILE"
-printf "║    kill \$(cat %s)                  ║\n" "$NGROK_PID_FILE"
-echo "║                                                                ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "  Logi uuesti avada (kui sulgesid akna):"
+echo "    bash $LOG_TAIL_HELPER"
+echo "    (või otse:  tail -n 0 -f $APP_LOG)"
+echo ""
+echo "  App + ngrok peatada:"
+echo "    kill \$(cat $APP_PID_FILE)"
+echo "    kill \$(cat $NGROK_PID_FILE)"
+echo ""
+echo "════════════════════════════════════════════════════════════════════"
 echo ""
