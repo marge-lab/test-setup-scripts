@@ -5,39 +5,32 @@ testimistöö jaoks.
 
 Skriptid jagunevad kahte rühma:
 
-1. **Web eID näidisrakendused** — paigaldavad ja käivitavad Web eID
-   eri keelte näiterakendusi (PHP, Java, .NET)
-2. **Muud testimisskriptid** — VMware shared folder, GNOME
-   ekraanisäästja keelamine
+1. **Web eID näidisrakendused** — PHP, Java, .NET (main-haru ja harude testimine)
+2. **Muud testimisskriptid** — VMware shared folder, GNOME ekraanisäästja keelamine
 
 ---
 
 # Web eID näidisrakendused
 
-Need skriptid kloonivad [web-eid](https://github.com/web-eid)
+Skriptid kloonivad [web-eid](https://github.com/web-eid)
 organisatsioonist vastava `web-eid-authtoken-validation-*` repo,
-ehitavad näiterakenduse ja käivitavad selle. Kõik skriptid avavad
-lõpus eraldi terminaliakna **live-logiga** (rakenduse päringud,
-sertide laadimine, OCSP/TSA tegevused reaalajas).
-
-Web eID näidisrakendused jagunevad omakorda kahte rühma — **main-haru
-skriptid** (upstream-i main-haru testimine) ja **harude testimise
-skriptid** (konkreetse feature-haru testimine enne mergimist).
+ehitavad näiterakenduse ja käivitavad. Kõik avavad lõpus eraldi
+terminaliakna **live-logiga** (rakenduse päringud, sertide laadimine,
+OCSP/TSA tegevused reaalajas).
 
 ## Main-haru skriptid
 
-Need käivitavad näiterakenduse upstream-i `main`-harust. Sobib
-"reliisi-testimiseks" — kontrollida, et upstream-i hetkeseisuga
-asjad töötavad.
+Upstream-i `main`-harust ehitatud rakendused — sobivad "reliisi-testimiseks".
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
 | [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus | Ubuntu |
 | [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (ngrok-iga) | Ubuntu, macOS |
 | [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (lokaalne) | Ubuntu |
-| [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok-tunnel (avalik HTTPS) | Ubuntu |
+| [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok (avalik HTTPS) | Ubuntu |
 
-### PHP — Ubuntu
+<details>
+<summary><b>PHP — Ubuntu</b></summary>
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php.sh
@@ -45,7 +38,10 @@ chmod +x setup-web-eid-php.sh
 bash setup-web-eid-php.sh
 ```
 
-### Java — Ubuntu
+</details>
+
+<details>
+<summary><b>Java — Ubuntu</b></summary>
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-java.sh
@@ -53,7 +49,14 @@ chmod +x setup-web-eid-java.sh
 bash setup-web-eid-java.sh
 ```
 
-### Java — macOS
+**Eeldused:** Java-skript vajab ngrok auth tokenit (küsitakse sammus 3/7).
+Tee endale tasuta konto ja kopeeri token:
+<https://dashboard.ngrok.com/get-started/your-authtoken>
+
+</details>
+
+<details>
+<summary><b>Java — macOS</b></summary>
 
 ```bash
 curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-java.sh
@@ -61,13 +64,12 @@ chmod +x setup-web-eid-java.sh
 bash setup-web-eid-java.sh
 ```
 
-#### Eeldused (Java)
+**Eeldused:** ngrok auth token (vt Java — Ubuntu).
 
-Java-skript vajab ngrok auth tokenit (küsitakse sammus 3/7). Tee
-endale tasuta konto ja kopeeri token:
-<https://dashboard.ngrok.com/get-started/your-authtoken>
+</details>
 
-### .NET — Ubuntu (lokaalne, HTTPS localhost:44391)
+<details>
+<summary><b>.NET — Ubuntu (lokaalne, HTTPS localhost:44391)</b></summary>
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.sh
@@ -81,7 +83,10 @@ ID-kaartidega** testimist (`~/.digidocpp/tsl/EE_T.xml` lubab test-CA-d).
 
 Vajadusel küsib skript sudo parooli (`libdigidocpp-csharp` paigaldamiseks).
 
-### .NET — Ubuntu (remote, ngrok-tunneliga)
+</details>
+
+<details>
+<summary><b>.NET — Ubuntu (remote, ngrok-tunneliga)</b></summary>
 
 Sama .NET näiterakendus, aga avalikult internetist kättesaadav ngrok-iga
 — sobib näiteks veebibrauseri-eksperdi remote-testimiseks mobiilseadmest.
@@ -104,21 +109,23 @@ Erinevus lokaalsest skriptist:
   - `~/.digidocpp/digidocpp.conf` (test-TSL URL + cert + TSA) — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
 
+</details>
+
 ## Harude testimise skriptid
 
-Need käivitavad näiterakenduse **mitte main-harust**, vaid mõnest
-upstream-i feature-harust — kasutatakse arendajate poolt enne mergimist
-parandatud koodi kontrollimiseks. Skript küsib (või võtab argumendiks)
+Upstream-i **feature-harust** ehitatud rakendused — kasutatakse PR-ide
+testimiseks enne mergimist. Skript küsib (või võtab argumendiks)
 haru-nime, kloonib selle, ehitab WebEid library lokaalseks
 NuGet-paketiks (versiooniga `1.2.0-beta1`, et eristuda upstream-i
 1.2.0-st) ja kasutab seda example-app-i ehitamiseks.
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
-| [`setup-web-eid-dotnet-branch.sh`](setup-web-eid-dotnet-branch.sh) | Web eID .NET näiterakendus suvalisest harust (lokaalne, HTTPS localhost:44391) | Ubuntu |
-| [`setup-web-eid-dotnet-branch-remote.sh`](setup-web-eid-dotnet-branch-remote.sh) | Web eID .NET näiterakendus suvalisest harust + ngrok-tunnel (avalik HTTPS) | Ubuntu |
+| [`setup-web-eid-dotnet-branch.sh`](setup-web-eid-dotnet-branch.sh) | Web eID .NET näide suvalisest harust (lokaalne) | Ubuntu |
+| [`setup-web-eid-dotnet-branch-remote.sh`](setup-web-eid-dotnet-branch-remote.sh) | Web eID .NET näide suvalisest harust + ngrok | Ubuntu |
 
-### .NET haru-testimine — Ubuntu (lokaalne)
+<details>
+<summary><b>.NET haru-testimine — Ubuntu (lokaalne)</b></summary>
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.sh
@@ -147,7 +154,10 @@ Skript:
 
 Kasulik, kui pead testima konkreetse arendaja PR-i enne mergimist.
 
-### .NET haru-testimine — Ubuntu (remote, ngrok-tunneliga)
+</details>
+
+<details>
+<summary><b>.NET haru-testimine — Ubuntu (remote, ngrok-tunneliga)</b></summary>
 
 Sama haru-testimine, aga ngrok-tunneliga — sobib näiteks PR-i jagamiseks
 arendajaga kaugteel või mobiilseadmest testimiseks.
@@ -173,7 +183,10 @@ Erinevus lokaalsest haru-skriptist (sama loogika nagu
     env-muutujaga — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
 
-## Live-logi aken — sulgemine, taas-avamine, peatamine
+</details>
+
+<details>
+<summary><b>Live-logi aken — sulgemine, taas-avamine, peatamine</b></summary>
 
 Kõik `setup-web-eid-*.sh` skriptid (nii main-haru kui harude testimise)
 avavad lõpus eraldi terminaliakna live-logiga (`tail -f` rakenduse logi peal).
@@ -204,7 +217,10 @@ Skripti **lõpu-banneril** ja **logi-akna sees** on selgelt välja kirjutatud:
 PHP-skripti puhul on Apache **system-teenus** (mitte foreground-protsess) —
 seda peatatakse: `sudo systemctl stop apache2`.
 
-## VMware Ubuntu VM-il PHP + Java koos
+</details>
+
+<details>
+<summary><b>⚠️ VMware Ubuntu VM-il PHP + Java koos (teadaolev konflikt)</b></summary>
 
 Kui paigaldad mõlemad näited samasse Ubuntu VM-i, kukub Java
 Maven-ehitus samm 5/7-s OCSP unit-testi peal (VMware NAT-i DNS-hijack
@@ -218,25 +234,27 @@ echo "127.0.0.2  invalid.invalid" | sudo tee -a /etc/hosts
 Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 `sudo systemctl start apache2`.
 
+</details>
+
 ---
 
 # Muud testimisskriptid
 
-Need ei ole Web eID-spetsiifilised vaid üldised Linux VM seadistus-skriptid.
+Üldised Linux VM seadistus-skriptid (ei ole Web eID-spetsiifilised).
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
 | [`disable-screensaver.sh`](disable-screensaver.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
 
-## VMware Shared Folder
+<details>
+<summary><b>VMware Shared Folder</b></summary>
 
 Paigaldab open-vm-tools'i, seadistab `/etc/fstab` rea, monteerib
 jagatud kausta ja loob sümbollingi kodukausta.
 
-### 1. Hosti pool (Windows, käsitsi VMware UI-s)
-
-VM peab olema **välja lülitatud** (mitte suspendis):
+**1. Hosti pool** (Windows, käsitsi VMware UI-s) — VM peab olema
+**välja lülitatud** (mitte suspendis):
 
 1. VMware Workstation → vali VM → **VM → Settings** (Ctrl+D)
 2. Vahekaart **Options** → vasakult **Shared Folders**
@@ -247,7 +265,7 @@ VM peab olema **välja lülitatud** (mitte suspendis):
 5. **OK** Settings akna sulgemiseks
 6. Power On VM
 
-### 2. VM-i pool (Ubuntu, skriptiga)
+**2. VM-i pool** (Ubuntu, skriptiga):
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-vmware-shared-folder.sh
@@ -257,7 +275,10 @@ bash setup-vmware-shared-folder.sh                 # tuvastab nime automaatselt
 bash setup-vmware-shared-folder.sh SharedVM        # määra nimi käsitsi
 ```
 
-## Ekraanisäästja keelamine — Ubuntu/GNOME
+</details>
+
+<details>
+<summary><b>Ekraanisäästja keelamine — Ubuntu/GNOME</b></summary>
 
 Linux VM-id (eriti VMware-s) kipuvad ekraanisäästja tõttu hanguma.
 Skript keelab kõik seotud GNOME seaded korraga ja kontrollib tulemused.
@@ -277,3 +298,5 @@ Seadistab:
 - `org.gnome.desktop.screensaver ubuntu-lock-on-suspend` → false (Ubuntu-spetsiifiline)
 
 Skript ei vaja sudo-d — seadistab ainult kasutaja dconf-i.
+
+</details>
