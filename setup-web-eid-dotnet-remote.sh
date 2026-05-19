@@ -468,35 +468,30 @@ echo -e "\${G}================================================================\$
 echo -e "\${G}  WebEid .NET REMOTE — LIVE LOGI\${N}"
 echo -e "\${G}================================================================\${N}"
 echo ""
-echo -e "\${Y}  Ava brauseris:\${N}  ${NGROK_URL}"
-echo -e "\${Y}  App log:\${N}        ${APP_LOG}"
-echo -e "\${Y}  ngrok inspector:\${N} http://127.0.0.1:4040"
+echo -e "\${Y}  Ava brauseris:\${N}     ${NGROK_URL}"
+echo -e "\${Y}  ngrok inspector:\${N}   http://127.0.0.1:4040"
+echo -e "\${Y}  App log:\${N}           ${APP_LOG}"
 echo ""
-echo -e "\${B}  Iga ID-kaardi tegevus (auth/sign/cert/OCSP) ilmub allpool reaalajas.\${N}"
-echo -e "\${B}  TSL signature spam on filtreeritud välja.\${N}"
-echo -e "\${B}  Sulge aken X-nupuga → sulgub KÕIK ühe klikiga: app + ngrok + logi.\${N}"
-echo -e "\${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida — nt ngrok URL-i.)\${N}"
+echo -e "\${B}  Akna sulgemine:\${N}    X-nupp (sulgeb AINULT akna; app + ngrok jäävad taustaks)"
+echo -e "\${B}                     Ctrl+C ignoreeritakse — saad teksti kopeerida (nt ngrok URL)"
 echo ""
+echo -e "\${B}  Logi uuesti avada:\${N} bash ${LOG_TAIL_HELPER}"
+echo ""
+echo -e "\${B}  App + ngrok peatada:\${N}"
+echo -e "\${B}    kill \\\$(cat ${APP_PID_FILE})\${N}"
+echo -e "\${B}    kill \\\$(cat ${NGROK_PID_FILE})\${N}"
+echo ""
+echo "  (TSL signature spam on filtreeritud välja.)"
 echo "----------------------------------------------------------------"
 
-# Ühe-tegevuse sulgemine: kui kasutaja klõpsab X-nuppu, terminal saadab
-# SIGHUP — cleanup tapab tail-i, dotnet-rakenduse JA ngrok-tunneli.
-# Vastasel juhul peaks kasutaja eraldi tegema kill-käske teises terminalis.
-#
-# SIGINT (Ctrl+C) ignoreeritakse — paljud terminal-id mappivad Ctrl+C
-# kopeerimiseks (Windows Terminal, VS Code, GNOME Terminal valitud teksti
-# puhul). Hoiame seda puutumata, et kasutaja saaks ngrok URL-i kopeerida.
-cleanup() {
-  kill \$(jobs -p) 2>/dev/null
-  [ -f "${APP_PID_FILE}" ] && kill \$(cat "${APP_PID_FILE}") 2>/dev/null
-  [ -f "${NGROK_PID_FILE}" ] && kill \$(cat "${NGROK_PID_FILE}") 2>/dev/null
-  exit 0
-}
+# Ctrl+C ignoreeritakse, et kopeerimine töötaks (paljud terminal-id mappivad
+# Ctrl+C kopeerimiseks — Windows Terminal, VS Code, GNOME Terminal valitud
+# teksti puhul). X-nupp (SIGHUP) sulgeb AINULT logi-akna — taustal jooksvaid
+# dotnet- ja ngrok-protsesse ei puututa. Kasutaja peatab need eraldi
+# kill-käskudega (banneril näha).
 trap '' INT
-trap cleanup TERM HUP
 
-tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24' &
-wait
+tail -n 0 -f "${APP_LOG}" | grep --line-buffered -vE 'TSL\.cpp:24'
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
 
@@ -524,24 +519,27 @@ done
 # Suur, selge lõpu-banner
 echo ""
 echo ""
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                  PAIGALDUS VALMIS                              ║"
-echo "╠════════════════════════════════════════════════════════════════╣"
-echo "║                                                                ║"
-printf "║  Ava brauseris:    %-44s║\n" "$NGROK_URL"
-echo "║                                                                ║"
-printf "║  ngrok inspector:  %-44s║\n" "http://127.0.0.1:4040"
-echo "║                                                                ║"
+echo "════════════════════════════════════════════════════════════════════"
+echo "  PAIGALDUS VALMIS — .NET (remote / ngrok)"
+echo "════════════════════════════════════════════════════════════════════"
+echo ""
+echo "  Ava brauseris:    $NGROK_URL"
+echo "  ngrok inspector:  http://127.0.0.1:4040"
+echo ""
 if [ "$opened_log" -eq 1 ]; then
-  echo "║  Live logi:        AVATUD ERALDI TERMINALIAKNAS                ║"
+  echo "  Live logi:        AVATUD ERALDI TERMINALIAKNAS"
+  echo "                    X-nupp sulgeb akna (app + ngrok jäävad taustaks)"
 else
-  echo "║  Live logi:        ei suutnud terminali avada                  ║"
-  printf "║  Käivita käsitsi:  tail -f %-36s║\n" "$APP_LOG"
+  echo "  Live logi:        ei suutnud terminali avada"
 fi
-echo "║                                                                ║"
-echo "║  Peatamiseks:                                                  ║"
-printf "║    kill \$(cat %s)              ║\n" "$APP_PID_FILE"
-printf "║    kill \$(cat %s)                  ║\n" "$NGROK_PID_FILE"
-echo "║                                                                ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "  Logi uuesti avada (kui sulgesid akna):"
+echo "    bash $LOG_TAIL_HELPER"
+echo "    (või otse:  tail -n 0 -f $APP_LOG | grep -v 'TSL.cpp:24')"
+echo ""
+echo "  App + ngrok peatada:"
+echo "    kill \$(cat $APP_PID_FILE)"
+echo "    kill \$(cat $NGROK_PID_FILE)"
+echo ""
+echo "════════════════════════════════════════════════════════════════════"
 echo ""
