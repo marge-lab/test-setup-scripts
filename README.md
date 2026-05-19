@@ -20,7 +20,7 @@ OCSP/TSA tegevused reaalajas).
 
 ## Main-haru skriptid
 
-Upstream-i `main`-harust ehitatud rakendused — sobivad "reliisi-testimiseks".
+Repo `main`-harust ehitatud rakendused — sobivad reliisi-testimiseks.
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
@@ -113,11 +113,11 @@ Erinevus lokaalsest skriptist:
 
 ## Harude testimise skriptid
 
-Upstream-i **feature-harust** ehitatud rakendused — kasutatakse PR-ide
-testimiseks enne mergimist. Skript küsib (või võtab argumendiks)
-haru-nime, kloonib selle, ehitab WebEid library lokaalseks
-NuGet-paketiks (versiooniga `1.2.0-beta1`, et eristuda upstream-i
-1.2.0-st) ja kasutab seda example-app-i ehitamiseks.
+Repo **arendusharust** ehitatud rakendused — kasutatakse PR-ide testimiseks
+enne main-i ühendamist. Skript küsib (või võtab argumendiks) haru-nime,
+kloonib selle, ehitab WebEid library lokaalseks NuGet-paketiks (versiooniga
+`1.2.0-beta1`, et eristuda peamisest 1.2.0-st) ja kasutab seda example-app-i
+ehitamiseks.
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
