@@ -301,6 +301,38 @@ if [ "$WITH_TESTS" -eq 1 ]; then
 
     echo "Täielik logi vaatamiseks (ANSI värvidega):"
     echo "    less -R $TEST_LOG"
+
+    # Ava test-logi automaatselt eraldi terminaliaknas (less -R).
+    # Ainult kukkumise korral — edukal läbimisel pole vaja detaili vaadata.
+    TEST_VIEWER="$HOME/.web-eid-php-test-viewer.sh"
+    cat > "$TEST_VIEWER" <<HELPER_EOF
+#!/bin/bash
+# Composer-test logi viewer — avaneb less-iga, Q väljub.
+# Akna X-nupp sulgeb akna otse (less saab SIGHUP-i).
+clear
+echo "Composer-test logi: ${TEST_LOG}"
+echo "Haru: ${BRANCH}"
+echo ""
+echo "less: Q-välju  /-otsi  n-järgmine  g/G-algus/lõpp  Space/b-leht"
+echo "Otsing kukkunud testile: /FAILURES  või  /^[0-9]+\\) "
+echo ""
+exec less -R "${TEST_LOG}"
+HELPER_EOF
+    chmod +x "$TEST_VIEWER"
+
+    for term in x-terminal-emulator gnome-terminal ptyxis konsole xfce4-terminal alacritty kitty xterm kgx; do
+      if command -v "$term" >/dev/null 2>&1; then
+        real_term=$(resolve_term_name "$term" || echo "$term")
+        case "$real_term" in
+          gnome-terminal*|ptyxis*) "$term" -- "$TEST_VIEWER" >/dev/null 2>&1 & ;;
+          kitty*)                  "$term" "$TEST_VIEWER" >/dev/null 2>&1 & ;;
+          *)                       "$term" -e "$TEST_VIEWER" >/dev/null 2>&1 & ;;
+        esac
+        echo ""
+        echo "→ Test-logi avatud eraldi terminaliaknas (less -R)"
+        break
+      fi
+    done
   fi
 fi
 
