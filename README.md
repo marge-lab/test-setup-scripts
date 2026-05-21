@@ -252,7 +252,7 @@ Erinevus lokaalsest haru-skriptist:
 - `example/src/app.conf.php` `origin_url` uuendatakse iga jooksu ajal
   ngrok URL-iks (Web eID library nõuab vastavust)
 - `--with-tests` lipp töötab sama nagu lokaalses skriptis — sh
-  **kukkumise korral avab automaatselt eraldi terminaliakna** test-logi
+  **ebaõnnestumise korral avab automaatselt eraldi terminaliakna** test-logi
   vaatega (`less -R`), edukal läbimisel uut akent ei avane (vt lokaalse
   skripti kirjeldust eespool)
 
