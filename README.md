@@ -217,7 +217,7 @@ Skript:
    ja näitab kokkuvõtte (Tests/Failures/Time)
 
 **Ühiktestide logi-aken (ainult `--with-tests`-iga):** kui mõni test
-**kukub**, avab skript automaatselt eraldi terminaliakna
+**ebaõnnestub**, avab skript automaatselt eraldi terminaliakna
 `composer-test.log`-i peal (`less -R` ANSI värvidega). Aknas: `Q` väljub,
 `/FAILURES` hüppab kukkumiste plokini, `/^[0-9]+) ` leiab kukkunud testide
 loendi, `g`/`G` viib algusesse/lõppu. **Edukal läbimisel uut akent ei
