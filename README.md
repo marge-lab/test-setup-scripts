@@ -197,8 +197,8 @@ chmod +x setup-web-eid-php-branch.sh
 # Kuvab harude nimekirja ja küsib valikut
 bash setup-web-eid-php-branch.sh
 
-# Haru + teegi ühiktestid (composer test repo juurkataloogis)
-bash setup-web-eid-php-branch.sh --branch WE2-919 --with-tests
+# Konkreetse pileti number + teegi ühiktestid (nt WE2-1180, NFC-102)
+bash setup-web-eid-php-branch.sh --branch <PILETI-NUMBER> --with-tests
 ```
 
 Skript:
@@ -240,8 +240,8 @@ chmod +x setup-web-eid-php-branch-remote.sh
 # Kuvab harude nimekirja ja küsib valikut
 bash setup-web-eid-php-branch-remote.sh
 
-# Haru + teegi ühiktestid (composer test repo juurkataloogis)
-bash setup-web-eid-php-branch-remote.sh --branch WE2-919 --with-tests
+# Konkreetse pileti number + teegi ühiktestid (nt WE2-1180, NFC-102)
+bash setup-web-eid-php-branch-remote.sh --branch <PILETI-NUMBER> --with-tests
 ```
 
 Erinevus lokaalsest haru-skriptist:
