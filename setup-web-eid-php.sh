@@ -98,7 +98,18 @@ echo -e "${B}  Iga päring (auth/sign/cert) ilmub allpool reaalajas.${N}"
 echo -e "${B}  Sulge aken X-nupuga → sulgub logi-aken.${N}"
 echo -e "${B}  Apache JÄÄB JOOKSMA (system-teenus). Peatamiseks: sudo systemctl stop apache2${N}"
 echo -e "${B}  (Ctrl+C ignoreeritakse, et teksti saaks kopeerida.)${N}"
-echo -e "${B}  NB: kui küsib sudo parooli, sisesta — Apache logid on root-omanduses.${N}"
+echo ""
+
+# Cache sudo creds FOREGROUND-is enne kui hakkame tail-i background-i panema.
+# Backgrounded sudo ei suuda terminali echo-d välja lülitada (vajab
+# foreground process group ownership-i), seetõttu kuvataks parool vabalt.
+echo "Apache logide lugemiseks vajalik sudo parool:"
+if ! sudo -v; then
+  echo ""
+  echo "Sudo autentimine ebaõnnestus. Sulge aken X-nupuga."
+  sleep 30
+  exit 1
+fi
 echo ""
 echo "----------------------------------------------------------------"
 
@@ -108,6 +119,7 @@ echo "----------------------------------------------------------------"
 trap "" INT
 trap 'kill $(jobs -p) 2>/dev/null; exit 0' TERM HUP
 
+# sudo siin kasutab cached credential-eid (sudo -v ülal), parooli enam ei küsi.
 sudo tail -q -n 0 -f /var/log/apache2/access.log /var/log/apache2/error.log &
 wait
 HELPER_EOF
