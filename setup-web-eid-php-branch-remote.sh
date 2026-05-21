@@ -461,7 +461,7 @@ echo "Composer-test logi: ${TEST_LOG}"
 echo "Haru: ${BRANCH}"
 echo ""
 echo "less: Q-välju  /-otsi  n-järgmine  g/G-algus/lõpp  Space/b-leht"
-echo "Otsing kukkunud testile: /FAILURES  või  /^[0-9]+\\) "
+echo "Otsing ebaõnnestunud testile: /FAILURES  või  /^[0-9]+\\) "
 echo ""
 exec less -R "${TEST_LOG}"
 HELPER_EOF
