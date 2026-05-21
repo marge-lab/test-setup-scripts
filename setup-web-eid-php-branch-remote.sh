@@ -520,7 +520,7 @@ cleanup() {
 trap "" INT
 trap cleanup TERM HUP
 
-sudo tail -n 0 -f /var/log/apache2/access.log /var/log/apache2/error.log &
+sudo tail -q -n 0 -f /var/log/apache2/access.log /var/log/apache2/error.log &
 wait
 HELPER_EOF
 chmod +x "$LOG_TAIL_HELPER"
