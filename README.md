@@ -123,6 +123,8 @@ ehitamiseks.
 |---|---|---|
 | [`setup-web-eid-dotnet-branch.sh`](setup-web-eid-dotnet-branch.sh) | Web eID .NET näide suvalisest harust (lokaalne) | Ubuntu |
 | [`setup-web-eid-dotnet-branch-remote.sh`](setup-web-eid-dotnet-branch-remote.sh) | Web eID .NET näide suvalisest harust + ngrok | Ubuntu |
+| [`setup-web-eid-php-branch.sh`](setup-web-eid-php-branch.sh) | Web eID PHP näide suvalisest harust (lokaalne) | Ubuntu |
+| [`setup-web-eid-php-branch-remote.sh`](setup-web-eid-php-branch-remote.sh) | Web eID PHP näide suvalisest harust + ngrok | Ubuntu |
 
 <details>
 <summary><b>.NET haru-testimine — Ubuntu (lokaalne)</b></summary>
@@ -182,6 +184,70 @@ Erinevus lokaalsest haru-skriptist (sama loogika nagu
   - `DigiDocConfiguration.cs`: laiendab `if`-tingimust `WEBEID_USE_TEST_TSL`
     env-muutujaga — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
+
+</details>
+
+<details>
+<summary><b>PHP haru-testimine — Ubuntu (lokaalne)</b></summary>
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php-branch.sh
+chmod +x setup-web-eid-php-branch.sh
+
+# Interaktiivne: kuvab harude nimekirja ja küsib valikut
+bash setup-web-eid-php-branch.sh
+
+# Otse haru nime või substring-iga
+bash setup-web-eid-php-branch.sh --branch WE2-919
+
+# Haru + teegi ühiktestid (composer test repo juurkataloogis)
+bash setup-web-eid-php-branch.sh --branch WE2-919 --with-tests
+```
+
+Skript:
+
+1. Tõmbab `web-eid-authtoken-validation-php` repo
+2. Laseb valida haru (interaktiivne nimekiri või `--branch` argument)
+3. Muudab example-rakenduse `composer.json`-i:
+   - `"web-eid/web-eid-authtoken-validation-php": "1.3.*"` → `"dev-<HARU>"`
+   - Lisab `repositories` bloki `"type": "git"` upstream-i URL-iga
+     (NB: mitte `"vcs"` — see kasutaks GitHub API-d ja kukuks autentimisega)
+4. Käivitab `composer update` example-kataloogis
+5. Seadistab Apache (DocumentRoot → example/public, SSL)
+6. Pärast valmimist näitab haru + commit hash-i — auditeeritav
+7. **`--with-tests` lipuga:** jooksutab lisaks teegi ühiktestid
+   (`composer install` + `composer test` repo juurkataloogis)
+   ja näitab kokkuvõtte (Tests/Failures/Time)
+
+Kasulik, kui pead testima konkreetse arendaja PR-i enne main-i ühendamist.
+
+</details>
+
+<details>
+<summary><b>PHP haru-testimine — Ubuntu (remote, ngrok-tunneliga)</b></summary>
+
+Sama haru-testimine, aga ngrok-tunneliga — sobib näiteks PR-i jagamiseks
+arendajaga kaugteel või mobiilseadmest testimiseks.
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php-branch-remote.sh
+chmod +x setup-web-eid-php-branch-remote.sh
+
+bash setup-web-eid-php-branch-remote.sh
+# või konkreetse haruga:
+bash setup-web-eid-php-branch-remote.sh --branch WE2-919
+# või haruga + ühiktestidega:
+bash setup-web-eid-php-branch-remote.sh --branch WE2-919 --with-tests
+```
+
+Erinevus lokaalsest haru-skriptist:
+
+- Paigaldab lisaks **ngrok**-i ja küsib auth tokenit
+  (<https://dashboard.ngrok.com/get-started/your-authtoken>)
+- ngrok tunneldab Apache HTTPS-i (port 443) avalikku URL-i
+- `example/src/app.conf.php` `origin_url` uuendatakse iga jooksu ajal
+  ngrok URL-iks (Web eID library nõuab vastavust)
+- `--with-tests` lipp töötab sama nagu lokaalses skriptis
 
 </details>
 
