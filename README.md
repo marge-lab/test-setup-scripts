@@ -216,6 +216,13 @@ Skript:
    (`composer install` + `composer test` repo juurkataloogis)
    ja näitab kokkuvõtte (Tests/Failures/Time)
 
+**Ühiktestide logi-aken (ainult `--with-tests`-iga):** kui mõni test
+**kukub**, avab skript automaatselt eraldi terminaliakna
+`composer-test.log`-i peal (`less -R` ANSI värvidega). Aknas: `Q` väljub,
+`/FAILURES` hüppab kukkumiste plokini, `/^[0-9]+) ` leiab kukkunud testide
+loendi, `g`/`G` viib algusesse/lõppu. **Edukal läbimisel uut akent ei
+avane** — kui kõik testid läbisid, pole detaili vaja vaadata.
+
 Kasulik, kui pead testima konkreetse arendaja PR-i enne main-i ühendamist.
 
 </details>
@@ -244,7 +251,10 @@ Erinevus lokaalsest haru-skriptist:
 - ngrok tunneldab Apache HTTPS-i (port 443) avalikku URL-i
 - `example/src/app.conf.php` `origin_url` uuendatakse iga jooksu ajal
   ngrok URL-iks (Web eID library nõuab vastavust)
-- `--with-tests` lipp töötab sama nagu lokaalses skriptis
+- `--with-tests` lipp töötab sama nagu lokaalses skriptis — sh
+  **kukkumise korral avab automaatselt eraldi terminaliakna** test-logi
+  vaatega (`less -R`), edukal läbimisel uut akent ei avane (vt lokaalse
+  skripti kirjeldust eespool)
 
 </details>
 
