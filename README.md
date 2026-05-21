@@ -1,4 +1,4 @@
-# test-setup-scripts
+## test-setup-scripts
 
 Paigaldus- ja seadistus-skriptid Linux VM-i kiireks ülesseadmiseks
 testimistöö jaoks.
