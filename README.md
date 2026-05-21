@@ -197,8 +197,8 @@ chmod +x setup-web-eid-php-branch.sh
 # Kuvab harude nimekirja ja küsib valikut
 bash setup-web-eid-php-branch.sh
 
-# Konkreetse pileti number + teegi ühiktestid (nt WE2-1180, NFC-102)
-bash setup-web-eid-php-branch.sh --branch <PILETI-NUMBER> --with-tests
+# Konkreetne haru nimetus + teegi ühiktestid (asenda WE2-123 oma haru-nimega)
+bash setup-web-eid-php-branch.sh --branch WE2-123 --with-tests
 ```
 
 Skript:
@@ -240,8 +240,8 @@ chmod +x setup-web-eid-php-branch-remote.sh
 # Kuvab harude nimekirja ja küsib valikut
 bash setup-web-eid-php-branch-remote.sh
 
-# Konkreetse pileti number + teegi ühiktestid (nt WE2-1180, NFC-102)
-bash setup-web-eid-php-branch-remote.sh --branch <PILETI-NUMBER> --with-tests
+# Konkreetne haru nimetus + teegi ühiktestid (asenda WE2-123 oma haru-nimega)
+bash setup-web-eid-php-branch-remote.sh --branch WE2-123 --with-tests
 ```
 
 Erinevus lokaalsest haru-skriptist:
