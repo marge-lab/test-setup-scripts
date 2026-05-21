@@ -411,20 +411,43 @@ if [ "$WITH_TESTS" -eq 1 ]; then
   TEST_RC=0
   composer test >> "$TEST_LOG" 2>&1 || TEST_RC=$?
 
-  echo ""
-  echo "--- Ühiktestide kokkuvõte ---"
+  # Statistika-rivi (Tests: 142, Assertions: 269, Failures: 1, ...)
   TEST_SUMMARY=$(tail -30 "$TEST_LOG" | grep -E "^(OK|FAILURES|ERRORS|Tests:|Time:|Memory:|There (was|were) [0-9]+ (failure|error))" | head -10)
-  if [ -n "$TEST_SUMMARY" ]; then
-    echo "$TEST_SUMMARY"
-  else
-    tail -10 "$TEST_LOG"
-  fi
 
+  echo ""
   if [ "$TEST_RC" -eq 0 ]; then
-    echo "✓ Kõik ühiktestid läbisid"
+    echo "================================================================="
+    echo "    ✓  KÕIK ÜHIKTESTID LÄBISID"
+    echo "================================================================="
+    echo ""
+    [ -n "$TEST_SUMMARY" ] && echo "$TEST_SUMMARY"
   else
-    echo "✗ Ühiktestid kukusid (rc=$TEST_RC). Täielik logi: $TEST_LOG"
-    echo "   Üksiku testi debug: cd $REPO_DIR && vendor/phpunit/phpunit/phpunit --no-coverage --debug --filter TEST_NIMI"
+    echo "#################################################################"
+    echo "##                                                             ##"
+    echo "##    ✗  ÜHIKTESTID KUKUSID  (rc=$TEST_RC)"
+    echo "##                                                             ##"
+    echo "#################################################################"
+    echo ""
+    [ -n "$TEST_SUMMARY" ] && { echo "$TEST_SUMMARY"; echo ""; }
+
+    # Nopi kukkunud testide loend (PHPUnit format: "1) Class::method")
+    FAILED_TESTS=$(grep -E "^[0-9]+\) " "$TEST_LOG" || true)
+    if [ -n "$FAILED_TESTS" ]; then
+      echo "Kukkunud testid:"
+      echo "$FAILED_TESTS" | sed 's/^/    /'
+      echo ""
+
+      # Esimese testi method-nimi --filter argumendiks
+      FIRST_METHOD=$(echo "$FAILED_TESTS" | head -1 | sed -nE 's/^[0-9]+\) .+::([a-zA-Z0-9_]+).*$/\1/p')
+      if [ -n "$FIRST_METHOD" ]; then
+        echo "Debug esimese kukkunud testi vastu (kopeeri ja jooksuta):"
+        echo "    cd $REPO_DIR && vendor/phpunit/phpunit/phpunit --no-coverage --debug --filter $FIRST_METHOD"
+        echo ""
+      fi
+    fi
+
+    echo "Täielik logi vaatamiseks (ANSI värvidega):"
+    echo "    less -R $TEST_LOG"
   fi
 fi
 
