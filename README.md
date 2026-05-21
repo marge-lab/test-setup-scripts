@@ -194,11 +194,8 @@ Erinevus lokaalsest haru-skriptist (sama loogika nagu
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php-branch.sh
 chmod +x setup-web-eid-php-branch.sh
 
-# Interaktiivne: kuvab harude nimekirja ja küsib valikut
+# Kuvab harude nimekirja ja küsib valikut
 bash setup-web-eid-php-branch.sh
-
-# Otse haru nime või substring-iga
-bash setup-web-eid-php-branch.sh --branch WE2-919
 
 # Haru + teegi ühiktestid (composer test repo juurkataloogis)
 bash setup-web-eid-php-branch.sh --branch WE2-919 --with-tests
@@ -233,10 +230,10 @@ arendajaga kaugteel või mobiilseadmest testimiseks.
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php-branch-remote.sh
 chmod +x setup-web-eid-php-branch-remote.sh
 
+# Kuvab harude nimekirja ja küsib valikut
 bash setup-web-eid-php-branch-remote.sh
-# või konkreetse haruga:
-bash setup-web-eid-php-branch-remote.sh --branch WE2-919
-# või haruga + ühiktestidega:
+
+# Haru + teegi ühiktestid (composer test repo juurkataloogis)
 bash setup-web-eid-php-branch-remote.sh --branch WE2-919 --with-tests
 ```
 
