@@ -10,7 +10,7 @@ Skriptid jagunevad kahte rühma:
 
 ---
 
-# Web eID näidisrakendused
+## Web eID näidisrakendused
 
 Skriptid kloonivad [web-eid](https://github.com/web-eid)
 organisatsioonist vastava `web-eid-authtoken-validation-*` repo,
@@ -18,7 +18,7 @@ ehitavad näiterakenduse ja käivitavad. Kõik avavad lõpus eraldi
 terminaliakna **live-logiga** (rakenduse päringud, sertide laadimine,
 OCSP/TSA tegevused reaalajas).
 
-## Main-haru skriptid
+### Main-haru skriptid
 
 Repo `main`-harust ehitatud rakendused — sobivad reliisi-testimiseks.
 
@@ -111,7 +111,7 @@ Erinevus lokaalsest skriptist:
 
 </details>
 
-## Harude testimise skriptid
+### Harude testimise skriptid
 
 Repo **arendusharust** ehitatud rakendused — kasutatakse PR-ide testimiseks
 enne main-i ühendamist. Skript küsib (või võtab argumendiks) haru-nime,
@@ -311,7 +311,7 @@ Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 
 ---
 
-# Muud testimisskriptid
+## Muud testimisskriptid
 
 Üldised Linux VM seadistus-skriptid (ei ole Web eID-spetsiifilised).
 
