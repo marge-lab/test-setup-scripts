@@ -136,8 +136,8 @@ chmod +x setup-web-eid-dotnet-branch.sh
 # Interaktiivne: kuvab harude nimekirja ja küsib valikut
 bash setup-web-eid-dotnet-branch.sh
 
-# Otse haru nime või substring-iga
-bash setup-web-eid-dotnet-branch.sh --branch WE2-1180
+# Konkreetne haru nimetus (asenda WE2-123 oma haru-nimega)
+bash setup-web-eid-dotnet-branch.sh --branch WE2-123
 ```
 
 Skript:
@@ -169,8 +169,8 @@ wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-w
 chmod +x setup-web-eid-dotnet-branch-remote.sh
 
 bash setup-web-eid-dotnet-branch-remote.sh
-# või konkreetse haruga:
-bash setup-web-eid-dotnet-branch-remote.sh --branch WE2-1180
+# Konkreetne haru nimetus (asenda WE2-123 oma haru-nimega):
+bash setup-web-eid-dotnet-branch-remote.sh --branch WE2-123
 ```
 
 Erinevus lokaalsest haru-skriptist (sama loogika nagu
