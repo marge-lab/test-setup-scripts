@@ -116,6 +116,31 @@ less -R ~/tools/build.log
 </details>
 
 <details>
+<summary><b>Java — logi-müra mustrid (paistab imelik, aga OK)</b></summary>
+
+Maveni build-logis (`~/tools/build.log`) on mõned mustrid, mis esmapilgul
+tunduvad vigade või anomaaliatena, aga on tegelikult **normaalne
+oodatud käitumine**. See tabel aitab vältida ebavajalikku küsimuste
+voori.
+
+| Mida sa näed logis | Mis see tegelikult on | Kas see on viga? |
+|---|---|---|
+| **Täielik HTML-leht keset logi** (~50–300 rida HTML-i) | Spring Boot `WebApplicationTest` integratsioonitest käivitab `MockMvc.perform(get("/"))` ja kasutab `.andDo(MockMvcResultHandlers.print())` debug-handlerit, mis trükib täieliku HTTP-vastuse (sh HTML-keha) `System.out`-i. Maven Surefire kopeerib selle build-logisse. | Ei. Tahtlik testi debug-väljund. |
+| **`[WARNING] Tests run: X, ..., Skipped: N`** ridu | Maven Surefire märgib WARNING-iga testid, mille klassis on **vähemalt üks `@Disabled`-annotatsiooniga test**. Sõnum ise ei tähenda viga — testid läbisid, lihtsalt mõni jäeti vahele. | Ei. `@Disabled` on tahtlik koodi-tasandi otsus, **mitte** `-DskipTests` flag. |
+| **Sajad `Downloading from gitlab: ... 404`-tüüpi katsed** | Maven proovib esimesena GitLab-i paketiregistrit (mille seadistus on `pom.xml`-is), see kukub, lõpuks lahendus saadakse Maven Central-ist. | Ei. Lihtsalt logimüra. Kõik artefaktid laaditakse lõpuks central-ist alla edukalt. |
+| **Sama "Building authtoken-validation X.Y.Z" ilmub 2× järjest** | Setup-skript käivitab Maven-i mitu korda järjest (sammud 5/7 ja 6/7) — kõigepealt teek, siis näidisrakendus. Teine kord ehitatakse teek **uuesti**, sest näidisrakenduse build võtab parent-i kaasa. | Ei. Topelt-build, aga mitte viga. Kuluvad ~5 lisaminutit. |
+| **Spring Boot startup-logid testide keskel** (`Started ... in X seconds`) | `@SpringBootTest` annotatsiooniga test käivitab kogu Spring konteksti (Tomcati embed, Spring Security, DispatcherServlet). See on tüüpiline integratsioonitesti väljund. | Ei. Normaalne. |
+| **Allkirjastatud konteineri DEBUG-väljund** (sertifikaadid, ahel, OCSP-vastused) | Näidisrakenduse `SigningService` logib `DEBUG`-tasemel iga sammu allkirjastamise käigus (sertifikaadi-ahel, TSA-ajatempel, OCSP-päring). | Ei. Audit-info, kasulik häda korral. |
+
+**Üks vorming, mille puhul HOIATADA:**
+
+- **`[ERROR]`** (mitte `[WARNING]`!) — siis tasub uurida.
+- **`BUILD FAILURE`** — siis on viga, vaata viimast `[ERROR]`-rida.
+- **`Tests run: X, Failures: Y, Errors: Z`** kus `Y` või `Z` on **suurem kui 0** — testid kukkusid läbi.
+
+</details>
+
+<details>
 <summary><b>.NET — Ubuntu (lokaalne, HTTPS localhost:44391)</b></summary>
 
 ```bash
