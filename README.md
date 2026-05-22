@@ -216,12 +216,30 @@ Skript:
    (`composer install` + `composer test` repo juurkataloogis)
    ja näitab kokkuvõtte (Tests/Failures/Time)
 
-**Ühiktestide logi-aken (ainult `--with-tests`-iga):** kui mõni test
-**ebaõnnestub**, avab skript automaatselt eraldi terminaliakna
-`composer-test.log`-i peal (`less -R` ANSI värvidega). Aknas: `Q` väljub,
-`/FAILURES` viib ebaõnnestumiste plokini, `/^[0-9]+) ` leiab ebaõnnestunud
-testide loendi, `g`/`G` viib algusesse/lõppu. **Edukal läbimisel uut akent ei
-avane** — kui kõik testid läbisid, pole detaili vaja vaadata.
+**Ühiktestide logi-aken (ainult `--with-tests`-iga):**
+
+- Iga skripti-jooks salvestab logi **timestamp-iga failinime alla**, näiteks
+  `~/composer-test-WE2-123-20260522-143015.log` — vanad logid ei kao kui
+  jooksutad uuesti.
+- **Ebaõnnestumise korral** avab skript automaatselt eraldi terminaliakna
+  logi-vaatega (`less -R` ANSI värvidega). Aknas: `Q` väljub, `/FAILURES`
+  viib ebaõnnestumiste plokini, `/^[0-9]+) ` leiab ebaõnnestunud testide
+  loendi, `g`/`G` viib algusesse/lõppu.
+- **Edukal läbimisel** küsib skript: `Avada test-logi eraldi terminaliaknas? [y/N]`
+  — vajuta `y` + Enter kui tahad logi näha (nt tõestuseks kontrollida), muidu
+  lihtsalt Enter ja minnakse edasi.
+- **Taasavamiseks hiljem** (mis tahes hetkel pärast skripti lõppu):
+  ```bash
+  bash ~/.web-eid-php-test-viewer.sh    # avaneb viimase jooksu logi
+  # või otse konkreetse logi-fail:
+  less -R ~/composer-test-WE2-123-20260522-143015.log
+  ```
+- **Tõestuseks salvestamine** (puhas tekst ilma ANSI värvi-koodideta):
+  ```bash
+  sed -r 's/\x1b\[[0-9;]*[mGKH]//g' \
+    ~/composer-test-WE2-123-20260522-143015.log \
+    > ~/php-tests-WE2-123-passed.txt
+  ```
 
 Kasulik, kui pead testima konkreetse arendaja PR-i enne main-i ühendamist.
 

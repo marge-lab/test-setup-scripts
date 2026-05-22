@@ -253,59 +253,27 @@ if [ "$WITH_TESTS" -eq 1 ]; then
   echo "NB! Testid jooksevad valitud haru ($BRANCH) lähtekoodi vastu."
   cd "$REPO_DIR"
 
-  if ! composer install --no-interaction >> "$TEST_LOG" 2>&1; then
+  # Timestamped logi-fail — säilib edaspidi (vana ei kao kui skripti uuesti
+  # jooksutad). Branch-i nimes / asendatakse _ (nt feature/foo → feature_foo).
+  TEST_LOG="$HOME/composer-test-${BRANCH//\//_}-$(date +%Y%m%d-%H%M%S).log"
+
+  if ! composer install --no-interaction > "$TEST_LOG" 2>&1; then
     echo "VIGA: composer install kukus. Logi viimased 30 rida:" >&2
     tail -30 "$TEST_LOG" >&2
     exit 1
   fi
 
   echo "Jooksutan: composer test (logi: $TEST_LOG)..."
-  : > "$TEST_LOG"  # tühjenda
+  : > "$TEST_LOG"  # tühjenda (composer install väljund eemaldatakse)
   TEST_RC=0
   composer test >> "$TEST_LOG" 2>&1 || TEST_RC=$?
 
   # Statistika-rivi (Tests: 142, Assertions: 269, Failures: 1, ...)
   TEST_SUMMARY=$(tail -30 "$TEST_LOG" | grep -E "^(OK|FAILURES|ERRORS|Tests:|Time:|Memory:|There (was|were) [0-9]+ (failure|error))" | head -10)
 
-  echo ""
-  if [ "$TEST_RC" -eq 0 ]; then
-    echo "================================================================="
-    echo "    ✓  KÕIK ÜHIKTESTID LÄBISID"
-    echo "================================================================="
-    echo ""
-    [ -n "$TEST_SUMMARY" ] && echo "$TEST_SUMMARY"
-  else
-    echo "#################################################################"
-    echo "##                                                             ##"
-    echo "##    ✗  ÜHIKTESTID KUKUSID  (rc=$TEST_RC)"
-    echo "##                                                             ##"
-    echo "#################################################################"
-    echo ""
-    [ -n "$TEST_SUMMARY" ] && { echo "$TEST_SUMMARY"; echo ""; }
-
-    # Nopi kukkunud testide loend (PHPUnit format: "1) Class::method")
-    FAILED_TESTS=$(grep -E "^[0-9]+\) " "$TEST_LOG" || true)
-    if [ -n "$FAILED_TESTS" ]; then
-      echo "Kukkunud testid:"
-      echo "$FAILED_TESTS" | sed 's/^/    /'
-      echo ""
-
-      # Esimese testi method-nimi --filter argumendiks
-      FIRST_METHOD=$(echo "$FAILED_TESTS" | head -1 | sed -nE 's/^[0-9]+\) .+::([a-zA-Z0-9_]+).*$/\1/p')
-      if [ -n "$FIRST_METHOD" ]; then
-        echo "Debug esimese kukkunud testi vastu (kopeeri ja jooksuta):"
-        echo "    cd $REPO_DIR && vendor/phpunit/phpunit/phpunit --no-coverage --debug --filter $FIRST_METHOD"
-        echo ""
-      fi
-    fi
-
-    echo "Täielik logi vaatamiseks (ANSI värvidega):"
-    echo "    less -R $TEST_LOG"
-
-    # Ava test-logi automaatselt eraldi terminaliaknas (less -R).
-    # Ainult kukkumise korral — edukal läbimisel pole vaja detaili vaadata.
-    TEST_VIEWER="$HOME/.web-eid-php-test-viewer.sh"
-    cat > "$TEST_VIEWER" <<HELPER_EOF
+  # Loo logi-viewer alati (nii edu kui ka kukkumise korral) — taasavamiseks
+  TEST_VIEWER="$HOME/.web-eid-php-test-viewer.sh"
+  cat > "$TEST_VIEWER" <<HELPER_EOF
 #!/bin/bash
 # Composer-test logi viewer — avaneb less-iga, Q väljub.
 # Akna X-nupp sulgeb akna otse (less saab SIGHUP-i).
@@ -318,8 +286,10 @@ echo "Otsing ebaõnnestunud testile: /FAILURES  või  /^[0-9]+\\) "
 echo ""
 exec less -R "${TEST_LOG}"
 HELPER_EOF
-    chmod +x "$TEST_VIEWER"
+  chmod +x "$TEST_VIEWER"
 
+  # Funktsioon: ava test-logi viewer eraldi terminaliaknas
+  open_test_viewer() {
     for term in x-terminal-emulator gnome-terminal ptyxis konsole xfce4-terminal alacritty kitty xterm kgx; do
       if command -v "$term" >/dev/null 2>&1; then
         real_term=$(resolve_term_name "$term" || echo "$term")
@@ -328,11 +298,65 @@ HELPER_EOF
           kitty*)                  "$term" "$TEST_VIEWER" >/dev/null 2>&1 & ;;
           *)                       "$term" -e "$TEST_VIEWER" >/dev/null 2>&1 & ;;
         esac
-        echo ""
-        echo "→ Test-logi avatud eraldi terminaliaknas (less -R)"
-        break
+        return 0
       fi
     done
+    return 1
+  }
+
+  echo ""
+  if [ "$TEST_RC" -eq 0 ]; then
+    echo "================================================================="
+    echo "    ✓  KÕIK ÜHIKTESTID LÄBISID"
+    echo "================================================================="
+    echo ""
+    [ -n "$TEST_SUMMARY" ] && echo "$TEST_SUMMARY"
+    echo ""
+    echo "Logi salvestatud: $TEST_LOG"
+    echo "Taasavamiseks:    bash $TEST_VIEWER   (või:  less -R $TEST_LOG)"
+    echo ""
+    # Edukal läbimisel: küsi kasutajalt kas avada logi eraldi aknas
+    read -r -p "Avada test-logi eraldi terminaliaknas? [y/N] " ANSWER
+    if [[ "$ANSWER" =~ ^[Yy]$ ]]; then
+      if open_test_viewer; then
+        echo "→ Test-logi avatud eraldi terminaliaknas (less -R)"
+      else
+        echo "Ei suutnud terminali avada. Käivita käsitsi: less -R $TEST_LOG"
+      fi
+    fi
+  else
+    echo "#################################################################"
+    echo "##                                                             ##"
+    echo "##    ✗  ÜHIKTESTID KUKUSID  (rc=$TEST_RC)"
+    echo "##                                                             ##"
+    echo "#################################################################"
+    echo ""
+    [ -n "$TEST_SUMMARY" ] && { echo "$TEST_SUMMARY"; echo ""; }
+
+    # Nopi ebaõnnestunud testide loend (PHPUnit format: "1) Class::method")
+    FAILED_TESTS=$(grep -E "^[0-9]+\) " "$TEST_LOG" || true)
+    if [ -n "$FAILED_TESTS" ]; then
+      echo "Ebaõnnestunud testid:"
+      echo "$FAILED_TESTS" | sed 's/^/    /'
+      echo ""
+
+      # Esimese testi method-nimi --filter argumendiks
+      FIRST_METHOD=$(echo "$FAILED_TESTS" | head -1 | sed -nE 's/^[0-9]+\) .+::([a-zA-Z0-9_]+).*$/\1/p')
+      if [ -n "$FIRST_METHOD" ]; then
+        echo "Debug esimese ebaõnnestunud testi vastu (kopeeri ja jooksuta):"
+        echo "    cd $REPO_DIR && vendor/phpunit/phpunit/phpunit --no-coverage --debug --filter $FIRST_METHOD"
+        echo ""
+      fi
+    fi
+
+    echo "Logi salvestatud: $TEST_LOG"
+    echo "Taasavamiseks:    bash $TEST_VIEWER   (või:  less -R $TEST_LOG)"
+
+    # Kukkumise korral: ava viewer automaatselt
+    if open_test_viewer; then
+      echo ""
+      echo "→ Test-logi avatud eraldi terminaliaknas (less -R)"
+    fi
   fi
 fi
 
@@ -419,7 +443,9 @@ echo "║  NB! Brauseris tuleb sertifikaadi hoiatus — see on ootuspärane,║"
 echo "║      kinnita erand ja jätka.                                   ║"
 echo "║                                                                ║"
 if [ "$WITH_TESTS" -eq 1 ]; then
-  printf "║  Ühiktestid logi:  %-44s║\n" "$TEST_LOG"
+  # Näita ainult failinime — täiskoht (~/...) on liiga pikk banneri jaoks,
+  # ja test-sektsioon (step 7) trükkis täiskoha juba välja niigi.
+  printf "║  Ühiktestid logi:  %-44s║\n" "$(basename "$TEST_LOG")"
   echo "║                                                                ║"
 fi
 if [ "$opened_log" -eq 1 ]; then
