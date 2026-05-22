@@ -409,6 +409,58 @@ else
 fi
 echo "Build target: $(basename $BUILD_TARGET)"
 
+# --- Build-log live monitor (eraldi terminaliaknas) ---------
+# Ava enne ehituse algust, et `dotnet restore/build` tegevus oleks
+# reaalajas eraldi aknas nähtav. Kasulik versioonide kontrolliks.
+# tail -F ootab kuni BUILD_LOG luuakse ja jälgib edasi ka kui see uuesti
+# kirjutatakse (restore → build vahel).
+BUILD_LOG_TAIL_HELPER="$TOOLS_DIR/.web-eid-dotnet-build-tail.sh"
+cat > "$BUILD_LOG_TAIL_HELPER" <<HELPER_EOF
+#!/bin/bash
+G='\033[1;32m'; Y='\033[1;33m'; B='\033[1;34m'; N='\033[0m'
+clear
+echo -e "\${G}================================================================\${N}"
+echo -e "\${G}  WebEid .NET HARU + ngrok — EHITUSE LIVE LOGI (dotnet)\${N}"
+echo -e "\${G}================================================================\${N}"
+echo ""
+echo -e "\${Y}  Logi:\${N}  ${BUILD_LOG}"
+echo ""
+echo -e "\${B}  dotnet restore + build väljund voogeti allpool reaalajas.\${N}"
+echo -e "\${B}  Otsi: 'Restoring' / 'Build succeeded' / WebEid.Security versioon.\${N}"
+echo -e "\${B}  Sulge aken X-nupuga kui valmis.\${N}"
+echo -e "\${B}  (Ctrl+C ignoreeritakse — kopeerimine.)\${N}"
+echo ""
+echo "----------------------------------------------------------------"
+
+trap "" INT
+trap 'kill \$(jobs -p) 2>/dev/null; exit 0' TERM HUP
+
+tail -F "${BUILD_LOG}" 2>/dev/null &
+wait
+HELPER_EOF
+chmod +x "$BUILD_LOG_TAIL_HELPER"
+
+opened_build_log=0
+for term in x-terminal-emulator gnome-terminal ptyxis konsole xfce4-terminal alacritty kitty xterm kgx; do
+  if command -v "$term" >/dev/null 2>&1; then
+    real_term=$(resolve_term_name "$term" || echo "$term")
+    case "$real_term" in
+      gnome-terminal*|ptyxis*) "$term" -- "$BUILD_LOG_TAIL_HELPER" >/dev/null 2>&1 & ;;
+      kitty*)                  "$term" "$BUILD_LOG_TAIL_HELPER" >/dev/null 2>&1 & ;;
+      *)                       "$term" -e "$BUILD_LOG_TAIL_HELPER" >/dev/null 2>&1 & ;;
+    esac
+    opened_build_log=1
+    break
+  fi
+done
+
+if [ "$opened_build_log" -eq 1 ]; then
+  echo "→ Ehituse live-logi avatud eraldi terminaliaknas"
+else
+  echo "HOIATUS: ei suutnud build-logi terminali avada. Logi: $BUILD_LOG"
+fi
+echo ""
+
 if ! dotnet restore "$BUILD_TARGET" > "$BUILD_LOG" 2>&1; then
   echo "VIGA: dotnet restore kukus. Viimased 40 rida logist:" >&2
   tail -40 "$BUILD_LOG" >&2
