@@ -69,6 +69,53 @@ bash setup-web-eid-java.sh
 </details>
 
 <details>
+<summary><b>Java — repo struktuur ja ehituse väljund</b></summary>
+
+Skript kloonib repo `~/projects/web-eid/` alla ja teeb selle sees kaks
+eraldi ehitust (sammud 5/7 ja 6/7):
+
+```
+web-eid/                              ← repo juur
+├── pom.xml                ┐
+├── src/                   │  TEEK (eu.webeid.security:authtoken-validation)
+│   ├── main/java/         │
+│   └── test/java/         ┘
+├── target/                              ← teegi build-väljund (mvn install paneb siia .jar-id)
+│   └── authtoken-validation-1.2.3.jar
+├── example/                             ← NÄIDISRAKENDUS
+│   ├── pom.xml            ┐
+│   ├── src/               │  eu.webeid.example:web-eid-springboot-example
+│   └── target/            ┘
+│       └── web-eid-springboot-example-1.2.3.jar
+├── LICENSE
+└── README.md
+```
+
+> **NB!** Versioon `1.2.3` näites on **näitlik** — sinu repo tegelikus
+> väljundis on praeguse haru versioon (vaata `pom.xml` `<version>` välja
+> või `target/` kausta failide nime).
+
+**Kuidas seda kontrollida:**
+
+```bash
+# Mis on teegi target-i sees?
+ls ~/projects/web-eid/target/
+# Peaks olema: authtoken-validation-X.Y.Z.jar (+ sources, javadoc, classes/, test-classes/, surefire-reports/...)
+
+# Mis on näidisrakenduse target-i sees?
+ls ~/projects/web-eid/example/target/
+# Peaks olema: web-eid-springboot-example-X.Y.Z.jar (Spring Boot fat JAR)
+```
+
+Ehituse logi (live-vaade eraldi terminaliaknas kuvatakse ehituse ajal
+automaatselt) on samuti vaadeldav käsitsi:
+```bash
+less -R ~/tools/build.log
+```
+
+</details>
+
+<details>
 <summary><b>.NET — Ubuntu (lokaalne, HTTPS localhost:44391)</b></summary>
 
 ```bash
