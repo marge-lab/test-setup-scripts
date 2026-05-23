@@ -23,6 +23,7 @@ tarfile). EI vaja `pip install` kasku.
 """
 
 import argparse
+import getpass
 import json
 import os
 import platform
@@ -314,12 +315,24 @@ def step_ngrok_auth():
     info("Vaja ngrok auth-tokenit.")
     info("Tokeni leiad: https://dashboard.ngrok.com/get-started/your-authtoken")
     info("(Tasuta konto piisab.)")
+    info("Sisestus on VARJATUD (getpass) — tahti tippimisel/kleepides ekraanile ei kuvata,")
+    info("token ei salvestu terminali scrollback-i ega skripti logisse.")
     print()
-    token = input(f"  {Y}? Kleebi ngrok auth-token (ainult token, mitte tervet kasku):{N} ").strip()
+    # NB: kasutame getpass.getpass()-i et token ei satuks terminali ekraanile.
+    token = getpass.getpass(f"  {Y}? Kleebi ngrok auth-token (sisestus varjatud, Enter kui valmis):{N} ").strip()
     if not token or len(token) < 20:
         fail("Token tyhi voi liiga lyhike. Loobun.")
-    run([str(NGROK_BIN), "config", "add-authtoken", token])
-    info("ngrok auth-token salvestatud.")
+    # NB: ei kasuta run()-i kuna see trykiks token-i ekraanile. Skript kutsub
+    # subprocess.run otseselt + nakitab info-logist <REDACTED>.
+    info("$ ngrok config add-authtoken <REDACTED>")
+    result = subprocess.run(
+        [str(NGROK_BIN), "config", "add-authtoken", token],
+        check=False,
+    )
+    if result.returncode != 0:
+        fail(f"ngrok config add-authtoken ebaonnestus (exit code {result.returncode})")
+    info(f"ngrok auth-token salvestatud: {config_path}")
+    info("Token on nuud puusivalt ngrok.yml-is, edaspidi pole vaja uuesti sisestada.")
 
 # --- 6. Repo kloonimine -----------------------------------------------------
 def step_clone_repo():
@@ -460,7 +473,22 @@ def step_ngrok_tunnel():
         except Exception:
             pass
     if not public_url:
-        fail("ngrok URL-i ei saadud 20 sek jooksul. Vaata logi: " + str(ngrok_log))
+        # Naita logi sisu, et kasutaja naeks miks ngrok ei toonud (auth-token,
+        # network, port-konflikt jms). Logi viimased 1000 baiti — piisav vea jaoks.
+        log_tail = ""
+        try:
+            log_text = ngrok_log.read_text(encoding="utf-8", errors="replace")
+            log_tail = log_text[-1000:] if log_text else "(logi tyhi)"
+        except Exception as e:
+            log_tail = f"(logi lugemine ebaonnestus: {e})"
+        fail(
+            f"ngrok URL-i ei saadud 20 sek jooksul.\n\n"
+            f"=== ngrok.log viimased read ({ngrok_log}) ===\n{log_tail}\n=== logi lopp ===\n\n"
+            f"Tavalised pohjused:\n"
+            f"  - Auth-token vale voi puudub → jooksuta skripti uuesti, sisesta uus token\n"
+            f"  - Port {APP_PORT} juba kasutuses → vabasta voi muuda APP_PORT skriptis\n"
+            f"  - Network/firewall blokk → kontrolli VPN-i, ettevotte proksit"
+        )
     info(f"ngrok URL: {public_url}")
 
     # Uuenda appsettings.json

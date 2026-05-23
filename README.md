@@ -275,6 +275,13 @@ python3 setup-web-eid-dotnet-remote.py --profile prod   # prod
 
 **Eeldused:** ngrok auth token (tasuta konto): <https://dashboard.ngrok.com/get-started/your-authtoken>. Skript küsib sinult tokenit ja salvestab selle `ngrok config`-iga.
 
+**Token-i ohutus:**
+- Sisestus on **varjatud** (`getpass.getpass()`) — tippimisel/kleepides ekraanile ei kuvata. Token EI satu terminali scrollback-i ega skripti logisse.
+- Skript ei salvesta tokenit kuhugi muusse peale `ngrok`-i enda konfi (`C:\Users\<sina>\AppData\Local\ngrok\ngrok.yml`).
+- Sealt loeb seda **ainult ngrok-protsess ise** tunneli avamisel. Edaspidi pole vaja tokenit uuesti sisestada — skript küsib ainult kui konfis pole.
+- Kontrollida saad `C:\Users\<sina>\AppData\Local\ngrok\ngrok.yml` — peaks sisaldama ühte `authtoken: ...` rida.
+- Eemaldamiseks: kustuta see fail.
+
 **Erinevus lokaalsest Python-skriptist:**
 
 - Paigaldab lisaks **ngrok**-i (otse-download GitHub-i releases-ist, mitte winget)
