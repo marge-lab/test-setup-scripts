@@ -534,7 +534,12 @@ def step_copy_native_libs_and_run() -> None:
         info(f"Prod-profile: loodud {conf_path}")
         info("  ts.url = https://eid-dd.ria.ee/ts (RIA test-TSA)")
 
-    # Maara ASPNETCORE_ENVIRONMENT vastavalt profiilile
+    # Maara ASPNETCORE_ENVIRONMENT + ASPNETCORE_URLS vastavalt profiilile.
+    # NB: vajame `--no-launch-profile` lipu, sest example-app-i
+    # launchSettings.json sisaldab hardcoded `ASPNETCORE_ENVIRONMENT=Development`.
+    # Selle kirjutaks ule meie env-muutuja → app jookseks Dev-modes hoolimata
+    # `--profile prod`-ist. `--no-launch-profile` skippib launchSettings.json,
+    # AGA siis kaotame ka `applicationUrl` — vajame ASPNETCORE_URLS env-i.
     env = os.environ.copy()
     if PROFILE == "prod":
         env["ASPNETCORE_ENVIRONMENT"] = "Production"
@@ -542,6 +547,7 @@ def step_copy_native_libs_and_run() -> None:
     else:
         env["ASPNETCORE_ENVIRONMENT"] = "Development"
         env_label = "Development"
+    env["ASPNETCORE_URLS"] = APP_URL  # vajalik koos --no-launch-profile-iga
 
     # Kaivitamine
     print()
@@ -566,6 +572,7 @@ def step_copy_native_libs_and_run() -> None:
             "--project", str(CSPROJ),
             "--configuration", "Debug",
             "--no-build",  # ei taasehitata — siis ei kustutata kopeeritud natiivteege
+            "--no-launch-profile",  # skipib launchSettings.json (hardcoded Dev ENVIRONMENT)
         ], check=False, env=env)
     except KeyboardInterrupt:
         print("\nRakendus peatatud (Ctrl+C).")
