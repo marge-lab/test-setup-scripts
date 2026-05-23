@@ -176,12 +176,13 @@ macOS-i kasutaja:    python3 setup-web-eid-dotnet.py    (otse terminalis)
 
 **Windows:**
 
-```powershell
-# PowerShell: lae alla cmd + py
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.cmd -OutFile setup-web-eid-dotnet.cmd
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.py -OutFile setup-web-eid-dotnet.py
+```cmd
+:: Lae alla mõlemad failid (curl töötab nii cmd-aknas kui PowerShell-is,
+:: Windows 10/11-l on curl.exe sisseehitatud)
+curl -o setup-web-eid-dotnet.cmd https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.cmd
+curl -o setup-web-eid-dotnet.py https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.py
 
-# Käivita topeltklikiga, või cmd-aknas:
+:: Käivita topeltklikiga failil VÕI cmd-aknas:
 .\setup-web-eid-dotnet.cmd
 ```
 
