@@ -30,6 +30,7 @@ Repo `main`-harust ehitatud rakendused — sobivad reliisi-testimiseks.
 | [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (lokaalne) | Ubuntu |
 | [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok (avalik HTTPS) | Ubuntu |
 | [`setup-web-eid-dotnet.py`](setup-web-eid-dotnet.py) (+ [`.cmd`](setup-web-eid-dotnet.cmd)) | Web eID .NET näiterakendus (Python-skript; lokaalne) | Windows, macOS |
+| [`setup-web-eid-dotnet-remote.py`](setup-web-eid-dotnet-remote.py) (+ [`.cmd`](setup-web-eid-dotnet-remote.cmd)) | Web eID .NET näiterakendus + ngrok (Python; avalik HTTPS) | Windows, macOS |
 
 <details>
 <summary><b>PHP — Ubuntu (lokaalne, HTTPS localhost)</b></summary>
@@ -240,6 +241,58 @@ python3 setup-web-eid-dotnet.py --profile prod
 | Source-patch DigiDocConfiguration.cs | ei | ei (kasutab Variant 2 — `digidocpp.conf`) |
 
 **Hoiatus prod-profile-i kohta:** `https://eid-dd.ria.ee/ts` on RIA **test-TSA** — sobib testimiseks, aga päris-produktsiooni jaoks vaja SK-tasulist TSA-kontot ja URL-i tuleb vahetada `https://eid.sk.ee/tsa`-le (või muule lepingu-kohasele).
+
+</details>
+
+<details>
+<summary><b>.NET — Windows / macOS (Python-skriptiga + ngrok, remote)</b></summary>
+
+Sarnaselt lokaalsele Python-skriptile, aga ngrok-tunneliga — sobib näiteks
+testimiseks teisest masinast, mobiilseadmest või PR-i jagamiseks arendajaga
+kaugteel.
+
+**Windows:**
+
+```cmd
+:: Lae alla mõlemad failid
+curl -o setup-web-eid-dotnet-remote.cmd https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-remote.cmd
+curl -o setup-web-eid-dotnet-remote.py https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-remote.py
+
+:: Vaikimisi: dev-profile (test-kaardid + source-patchid)
+.\setup-web-eid-dotnet-remote.cmd
+
+:: VOI: prod-profile (live-kaardid + digidocpp.conf ts.url-iga)
+.\setup-web-eid-dotnet-remote.cmd --profile prod
+```
+
+**macOS:**
+
+```bash
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-remote.py
+python3 setup-web-eid-dotnet-remote.py            # dev
+python3 setup-web-eid-dotnet-remote.py --profile prod   # prod
+```
+
+**Eeldused:** ngrok auth token (tasuta konto): <https://dashboard.ngrok.com/get-started/your-authtoken>. Skript küsib sinult tokenit ja salvestab selle `ngrok config`-iga.
+
+**Erinevus lokaalsest Python-skriptist:**
+
+- Paigaldab lisaks **ngrok**-i (otse-download GitHub-i releases-ist, mitte winget)
+- Küsib ngrok auth-tokenit (skripti sees, mitte eraldi aknas)
+- Rakendus kuulab **HTTP-na** `0.0.0.0:8080` — ngrok teeb HTTPS-i
+- `ASPNETCORE_ENVIRONMENT=Production` **alati** (ngrok-i `UseForwardedHeaders()` jaoks)
+- `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
+- **`--profile dev`** korral kaks source-patchi (vajalik, kuna Production-mode pole loomulik test-kaartide jaoks):
+  - `Startup.cs`: `LoadTrustedCaCertificatesFromDisk(true)` — sunnib test-CA-d ka Production-modes
+  - `DigiDocConfiguration.cs`: laiendab `if`-tingimust `WEBEID_USE_TEST_TSL` env-muutujaga — sunnib test-TSL-i
+- **`--profile prod`** korral source-patche EI tehta + `bin\Debug\net8.0\digidocpp.conf` `ts.url`-iga (Variant 2)
+
+**Akna käitumine:**
+- Sama cmd-aken hoiab nii `dotnet run`-i kui ngrok-tunneli (PID Python-protsessis salvestatud)
+- **Ctrl+C** peatab MÕLEMAD (app + ngrok) — puhas väljumine
+- Brauser avaneb 8 sek pärast app-i käivitust ngrok URL-ile
+
+</details>
 
 </details>
 
