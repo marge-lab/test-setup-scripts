@@ -188,14 +188,25 @@ def winget_install(package_id: str, friendly_name: str) -> None:
         fail("winget pole leitav. Uuenda Windows-i App Installer-i Microsoft Store-ist.")
 
     info(f"Paigaldan {friendly_name} winget-iga...")
-    run([
+    result = run([
         "winget", "install",
         "--id", package_id,
         "--source", "winget",
         "--accept-source-agreements",
         "--accept-package-agreements",
         "--silent",
-    ])
+    ], check=False)
+    # winget exit code-id:
+    #   0     = success
+    #   3010  = success, reboot vajalik
+    #   1641  = success
+    #   2316632107 (0x8A15002B) = APPINSTALLER_CLI_ERROR_PACKAGE_ALREADY_INSTALLED
+    #                              (juba paigaldatud, mitte error)
+    OK_EXIT_CODES = {0, 3010, 1641, 2316632107}
+    if result.returncode not in OK_EXIT_CODES:
+        warn(f"winget exit code {result.returncode} — proovin edasi (PATH refresh + re-check)")
+    elif result.returncode == 2316632107:
+        info(f"{friendly_name} oli juba paigaldatud")
     # Parast install-i varskenda PATH-i, et jargmised sammud naeksid uut kasku.
     refresh_path_from_registry()
 
@@ -517,6 +528,11 @@ def main() -> None:
     print()
 
     TOOLS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Varskenda PATH-i registry-st kohe skripti alguses. Windows Terminal
+    # emaprotsess voib hoida vana PATH-i (enne winget install-e). Refresh
+    # tagab, et `has_command(...)` naeb koiki juba-paigaldatud rakendusi.
+    refresh_path_from_registry()
 
     try:
         step_dotnet_sdk()
