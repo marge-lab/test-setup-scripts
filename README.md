@@ -251,6 +251,18 @@ Sarnaselt lokaalsele Python-skriptile, aga ngrok-tunneliga — sobib näiteks
 testimiseks teisest masinast, mobiilseadmest või PR-i jagamiseks arendajaga
 kaugteel.
 
+> **⚠️ TÄHELEPANU TEST-KAARDI KASUTAJALE:**
+>
+> Remote-skripti logist näed alati `Hosting environment: Production` — **see on õige**, mitte bug. **ÄRA võta selle pärast live-kaarti, kui sul on test-kaart.**
+>
+> Remote-skriptis `--profile` tähendab **KAARDITÜÜPI**, mitte ASP.NET-i environment-it:
+> - **`--profile dev`** = **test-kaart** (JÕEORG jms) — VAIKIMISI
+> - **`--profile prod`** = **live-kaart** (päris isiklik ID)
+>
+> ASP.NET Hosting environment on remote-modes **alati Production** — ngrok-i `UseForwardedHeaders()` middleware vajab seda. Skript teeb source-patchid, mis sunnivad test-CA-d ja test-TSL-i tööle Production-mode-s.
+>
+> Niisiis: **test-kaart → `--profile dev`** (vaikimisi). Logist näed Production, aga autentimine töötab test-kaardiga.
+
 **Windows:**
 
 ```cmd
