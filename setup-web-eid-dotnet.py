@@ -65,21 +65,19 @@ DIGIDOC_DIR = EXAMPLE_DIR / "DigiDoc"
 IS_WINDOWS = sys.platform == "win32"
 IS_MACOS = sys.platform == "darwin"
 
-# DigiDoc4 / libdigidocpp natiivteegi vaikimisi paigaldus-asukohad
+# libdigidocpp dev-teegi paigaldus-asukohad
+# NB: libdigidocpp on DEVELOPER-teek, EI OLE sama mis DigiDoc4 Client
+# (kasutaja-tarkvara allkirjastamiseks). .NET naidisrakendus vajab
+# libdigidocpp-d (sealhulgas C# bindings include/digidocpp_csharp).
+# Allikas: https://github.com/open-eid/libdigidocpp/releases (x64.msi)
 if IS_WINDOWS:
-    DIGIDOC4_CANDIDATES = [
-        Path(os.environ.get("ProgramFiles", "C:\\Program Files")) / "DigiDoc4 Client",
-        Path("C:\\Program Files\\DigiDoc4 Client"),
-        Path("C:\\Program Files\\Open-EID\\DigiDoc4 Client"),
-    ]
+    LIBDIGIDOCPP_BASE = Path(os.environ.get("ProgramFiles", "C:\\Program Files")) / "libdigidocpp"
     NATIVE_LIB_NAME = "digidoc_csharp.dll"  # Windows natiivteek
     APP_URL = "https://localhost:44391"
 elif IS_MACOS:
-    DIGIDOC4_CANDIDATES = [
-        Path("/Library/Frameworks/digidocpp.framework"),
-        Path("/opt/homebrew/lib"),         # Homebrew Apple Silicon
-        Path("/usr/local/lib"),             # Homebrew Intel
-    ]
+    # TODO: macOS-il libdigidocpp tavaliselt brew-ga voi DigiDoc4 paigaldusega.
+    # Vajab testimist enne kasutamist.
+    LIBDIGIDOCPP_BASE = Path("/Library/libdigidocpp")
     NATIVE_LIB_NAME = "libdigidoc_csharp.dylib"
     APP_URL = "https://localhost:44391"
 else:
@@ -250,82 +248,91 @@ def step_git() -> None:
         info("Kui XCode Command Line Tools dialoog avanes — kinnita ja oota loppu.")
 
 
-# --- 3. DigiDoc4 Client (libdigidocpp) -------------------------------------
-def find_digidoc_native_lib() -> Path:
-    """Otsi digidoc_csharp.dll (Windows) voi libdigidoc_csharp.dylib (macOS).
+# --- 3. libdigidocpp (dev-teek) --------------------------------------------
+def is_libdigidocpp_installed() -> bool:
+    """Kas libdigidocpp on paigaldatud ootuspärasele asukohale?"""
+    cs_dir = LIBDIGIDOCPP_BASE / "include" / "digidocpp_csharp"
+    return cs_dir.is_dir()
 
-    Tagastab leitud DLL/dylib Path-i, voi tostab erindi kui ei leitud.
+
+def download_latest_libdigidocpp_msi() -> Path:
+    """Lae alla uusim libdigidocpp x64 MSI GitHub releases-ist.
+
+    Tagastab kohaliku faili Path-i.
     """
-    candidates: list[Path] = []
-    for base in DIGIDOC4_CANDIDATES:
-        if base.is_dir():
-            # Otse base-i sees
-            direct = base / NATIVE_LIB_NAME
-            if direct.is_file():
-                candidates.append(direct)
-            # Subdir-ides (nt csharp/, lib/)
-            for sub in base.rglob(NATIVE_LIB_NAME):
-                candidates.append(sub)
+    api_url = "https://api.github.com/repos/open-eid/libdigidocpp/releases/latest"
+    info(f"Otsin uusima release-i: {api_url}")
+    req = urllib.request.Request(api_url, headers={"Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=30) as response:
+        release = json.load(response)
 
-    if not candidates:
-        raise FileNotFoundError(
-            f"Ei leidnud {NATIVE_LIB_NAME}-i. "
-            f"Otsitud asukohad: {[str(p) for p in DIGIDOC4_CANDIDATES]}"
-        )
-    return candidates[0]
+    info(f"Uusim release: {release.get('tag_name', '?')}")
+    msi_asset = None
+    for asset in release.get("assets", []):
+        name = asset["name"].lower()
+        if "x64.msi" in name or ("x64" in name and name.endswith(".msi")):
+            msi_asset = asset
+            break
 
+    if not msi_asset:
+        names = [a["name"] for a in release.get("assets", [])]
+        fail(f"Ei leidnud x64.msi faili release-ist. Saadaval: {names}")
 
-def find_digidoc_cs_files() -> Path:
-    """Otsi digidoc.cs ja muud C# bindings-failid.
-
-    Tagastab kataloogi, kus need on (mitte fail).
-    """
-    for base in DIGIDOC4_CANDIDATES:
-        if not base.is_dir():
-            continue
-        for cs_file in base.rglob("digidoc.cs"):
-            return cs_file.parent
-    raise FileNotFoundError(
-        f"Ei leidnud digidoc.cs-faili. "
-        f"Otsitud asukohad: {[str(p) for p in DIGIDOC4_CANDIDATES]}"
-    )
+    msi_path = TOOLS_DIR / msi_asset["name"]
+    size_mb = msi_asset.get("size", 0) // (1024 * 1024)
+    info(f"Laen alla: {msi_asset['name']} ({size_mb} MB)")
+    urllib.request.urlretrieve(msi_asset["browser_download_url"], msi_path)
+    info(f"Allalaaditud: {msi_path}")
+    return msi_path
 
 
-def step_digidoc4() -> None:
-    step(3, 9, "DigiDoc4 Client / libdigidocpp")
-    try:
-        lib = find_digidoc_native_lib()
-        info(f"libdigidocpp natiivteek leitud: {lib}")
+def step_libdigidocpp() -> None:
+    step(3, 9, "libdigidocpp (dev-teek, MITTE DigiDoc4 Client)")
+
+    if is_libdigidocpp_installed():
+        info(f"libdigidocpp on juba paigaldatud: {LIBDIGIDOCPP_BASE}")
         return
-    except FileNotFoundError as e:
-        info(str(e))
 
-    if IS_WINDOWS:
-        info("DigiDoc4 Client pole paigaldatud (voi digidoc_csharp.dll pole bundle-is).")
-        info("DigiDoc4 Client on RIA ametlik signeerija — paigaldame winget-iga.")
-        if not ask_yn("Paigaldada DigiDoc4 Client?"):
-            fail("Skript vajab libdigidocpp-d. Loobun.")
-        # RIA ametlik winget-pakett
-        winget_install("RIA.DigiDoc4Client", "DigiDoc4 Client")
-        info("Kontrolli parast installi kasitsi, et digidoc_csharp.dll leiti.")
-        info("Kui mitte — voib-olla pead C# bindings paigaldama eraldi.")
-    elif IS_MACOS:
-        info("macOS-il vajab libdigidocpp-csharp-i. Eeldab Homebrew-d:")
-        info("    brew install --cask digidoc4")
-        if not ask_yn("Paigaldada DigiDoc4 brew-ga?"):
-            fail("Skript vajab libdigidocpp-d. Loobun.")
-        run(["brew", "install", "--cask", "digidoc4"])
+    info("libdigidocpp pole paigaldatud.")
+    info("")
+    info("NB! See EI OLE sama mis DigiDoc4 Client (kasutaja-tarkvara).")
+    info("    DigiDoc4 Client = GUI signeerija lopptarbijale")
+    info("    libdigidocpp    = developer-teek, mida vajab .NET naiterakendus")
+    info("    Need ON KAKS ERINEVAT paigaldust, hoolimata sarnasest nimest.")
+    info("")
+    info("Allikas: https://github.com/open-eid/libdigidocpp/releases (uusim x64.msi)")
 
-    # Veelkord proovi leida
-    try:
-        lib = find_digidoc_native_lib()
-        info(f"libdigidocpp natiivteek leitud: {lib}")
-    except FileNotFoundError as e:
+    if not IS_WINDOWS:
+        info("macOS-il: vajab kontrollimist (tavaliselt brew voi DigiDoc4 paigaldus).")
+        fail("macOS libdigidocpp paigaldus pole veel implementeeritud.")
+
+    if not ask_yn("Paigaldada libdigidocpp uusim x64 MSI?"):
+        fail("Skript vajab libdigidocpp-d. Loobun.")
+
+    msi_path = download_latest_libdigidocpp_msi()
+
+    info("Paigaldan MSI-d (Windows kysib UAC-loa — kinnita 'Yes')...")
+    # /passive = progress-bar UI, ei vaja kasutaja-klikke (peale UAC-loa).
+    # /norestart = ei taaskaivita arvutit installi lopus.
+    # 0 = success, 3010 = success+reboot vajalik.
+    result = subprocess.run(
+        ["msiexec", "/i", str(msi_path), "/passive", "/norestart"],
+        check=False,
+    )
+    if result.returncode not in (0, 3010):
         fail(
-            f"{e}\n"
-            "Kontrolli, kas DigiDoc4 Client sisaldab C# bindings (digidoc_csharp.dll).\n"
-            "Monel paigaldusel on need eraldi paketis."
+            f"MSI paigaldus ebaonnestus (exit code {result.returncode}). "
+            f"Proovi kasitsi: msiexec /i {msi_path}"
         )
+    if result.returncode == 3010:
+        warn("Paigaldus korras, kuid soovitatav on Windows taaskaivitada.")
+
+    if not is_libdigidocpp_installed():
+        fail(
+            f"libdigidocpp paigaldus ei leitud asukohas {LIBDIGIDOCPP_BASE}. "
+            "Kontrolli kasitsi."
+        )
+    info(f"libdigidocpp paigaldatud: {LIBDIGIDOCPP_BASE}")
 
 
 # --- 4. Repo kloonimine -----------------------------------------------------
@@ -372,47 +379,48 @@ def step_patch_csproj() -> None:
     info(f"OK: {CSPROJ.name} uuendatud — ProjectReference WebEid.Security")
 
 
-# --- 6. DigiDoc DLL-id projektisse -----------------------------------------
+# --- 6. libdigidocpp failide kopeerimine projektisse -----------------------
 def step_copy_digidoc_files() -> None:
-    step(6, 9, "DigiDoc4 natiivteegid + C# bindings kopeerimine projektisse")
+    """Kopeeri libdigidocpp C# bindings + natiivteegid projektisse.
+
+    Vastab ametlikule juhendile:
+      copy "C:\\Program Files\\libdigidocpp\\include\\digidocpp_csharp" DigiDoc
+      mkdir bin\\Debug\\net8.0
+      xcopy /s "C:\\Program Files\\libdigidocpp\\" bin\\Debug\\net8.0
+    """
+    step(6, 9, "libdigidocpp failide kopeerimine projektisse")
     DIGIDOC_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Natiivteek (DLL / dylib)
-    src_lib = find_digidoc_native_lib()
-    dst_lib = DIGIDOC_DIR / NATIVE_LIB_NAME
-    if dst_lib.is_file():
-        info(f"Olemasolev: {dst_lib.name}")
-    else:
-        shutil.copy2(src_lib, dst_lib)
-        info(f"Kopeeritud: {src_lib} → {dst_lib.name}")
+    # 1. C# bindings (*.cs) — include/digidocpp_csharp → projekt-i DigiDoc/
+    cs_source = LIBDIGIDOCPP_BASE / "include" / "digidocpp_csharp"
+    if not cs_source.is_dir():
+        fail(
+            f"libdigidocpp C# bindings ei leitud: {cs_source}. "
+            "Kas paigaldus on korralik?"
+        )
+    cs_files = list(cs_source.glob("*.cs"))
+    if not cs_files:
+        fail(f"Ei leidnud .cs faile asukohas {cs_source}")
+    for cs_file in cs_files:
+        dst = DIGIDOC_DIR / cs_file.name
+        shutil.copy2(cs_file, dst)
+    info(f"C# bindings kopeeritud DigiDoc/-i: {len(cs_files)} faili")
 
-    # C# bindings (digidoc.cs jms)
-    try:
-        cs_dir = find_digidoc_cs_files()
-        cs_files = list(cs_dir.glob("*.cs"))
-        for cs_file in cs_files:
-            dst = DIGIDOC_DIR / cs_file.name
-            if not dst.is_file():
-                shutil.copy2(cs_file, dst)
-        info(f"C# bindings kopeeritud: {len(cs_files)} faili kaustast {cs_dir}")
-    except FileNotFoundError as e:
-        warn(f"{e}\nKui build kukub `digidoc` namespace puudusega, vajab kasitsi paigaldust.")
-
-    # Directory.Build.props — et .dll/.dylib kopeerituks build-output'i
-    build_props = EXAMPLE_DIR / "Directory.Build.props"
-    if not build_props.is_file():
-        props_content = f"""<Project>
-  <ItemGroup>
-    <None Update="DigiDoc/{NATIVE_LIB_NAME}">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-</Project>
-"""
-        build_props.write_text(props_content, encoding="utf-8")
-        info(f"Loodud: {build_props.name} ({NATIVE_LIB_NAME} kopeeritakse build output'i)")
-    else:
-        info(f"Olemasolev: {build_props.name}")
+    # 2. Koik libdigidocpp failid (DLL-id jne) → bin/Debug/net8.0/
+    # NB: ametlik juhend kasutab xcopy /s — rekursiivselt koik failid + alamkataloogid.
+    # Pythonis sama: rglob + shutil.copy2 iga faili kohta.
+    bin_dir = EXAMPLE_DIR / "bin" / "Debug" / "net8.0"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    info(f"Kopeerin libdigidocpp failid build output-i: {bin_dir}")
+    copied = 0
+    for item in LIBDIGIDOCPP_BASE.rglob("*"):
+        if item.is_file():
+            rel = item.relative_to(LIBDIGIDOCPP_BASE)
+            dst = bin_dir / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, dst)
+            copied += 1
+    info(f"libdigidocpp failid kopeeritud: {copied} faili")
 
 
 # --- 7. HTTPS dev-sertifikaat -----------------------------------------------
@@ -425,23 +433,21 @@ def step_dev_cert() -> None:
 
 # --- 8. Test-TSL flag -------------------------------------------------------
 def step_tsl_flag() -> None:
-    step(8, 9, "Test-TSL flag (~/.digidocpp/tsl/EE_T.xml)")
-    # libdigidocpp loeb TSL cache'i jargmistest kohtadest:
-    #   Windows: %LOCALAPPDATA%\digidocpp\tsl\
+    step(8, 9, "Test-TSL flag (EE_T.xml)")
+    # libdigidocpp loeb TSL cache'i:
+    #   Windows: %APPDATA%\digidocpp\tsl\   (Roaming AppData, NB! mitte %LOCALAPPDATA%)
     #   macOS:   ~/Library/Containers/.../digidocpp/tsl/  VOI ~/.digidocpp/tsl/
-    # Konservatiivselt loome MOLEMAD asukohad — libdigidocpp ignoreerib mittekasutatud.
-    tsl_dirs = []
+    # Ametlik juhend (Windows): mkdir %appdata%\digidocpp\tsl
     if IS_WINDOWS:
-        local_appdata = Path(os.environ.get("LOCALAPPDATA", HOME / "AppData" / "Local"))
-        tsl_dirs.append(local_appdata / "digidocpp" / "tsl")
-    tsl_dirs.append(HOME / ".digidocpp" / "tsl")
+        appdata = Path(os.environ.get("APPDATA", HOME / "AppData" / "Roaming"))
+        tsl_dir = appdata / "digidocpp" / "tsl"
+    else:
+        tsl_dir = HOME / ".digidocpp" / "tsl"
 
-    for tsl_dir in tsl_dirs:
-        tsl_dir.mkdir(parents=True, exist_ok=True)
-        ee_t = tsl_dir / "EE_T.xml"
-        ee_t.touch(exist_ok=True)
-        info(f"OK: {ee_t}")
-
+    tsl_dir.mkdir(parents=True, exist_ok=True)
+    ee_t = tsl_dir / "EE_T.xml"
+    ee_t.touch(exist_ok=True)
+    info(f"OK: {ee_t}")
     info("EE_T.xml tuhi fail = libdigidocpp lubab test ID-kaartide sertifikaate.")
 
 
@@ -500,7 +506,7 @@ def main() -> None:
     try:
         step_dotnet_sdk()
         step_git()
-        step_digidoc4()
+        step_libdigidocpp()
         step_clone_repo()
         step_patch_csproj()
         step_copy_digidoc_files()
