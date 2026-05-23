@@ -1,0 +1,11 @@
+# Sunni Windows-i batch-failidele CRLF rea-lopetajad nii repos kui working
+# tree-s. Vajalik, sest cmd.exe ei oska LF-only faile korrektselt parsida —
+# muutujad ei expand-i ja kasud nahtakse "missing characters" veaga.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Shell-skriptid (Linux/macOS) vajavad LF — Windows-i CRLF
+# lammutab shebang-i parsing-u.
+*.sh text eol=lf
+*.py text eol=lf
