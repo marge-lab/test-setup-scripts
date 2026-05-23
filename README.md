@@ -312,6 +312,17 @@ python3 setup-web-eid-dotnet-remote.py --profile prod   # prod
   - `DigiDocConfiguration.cs`: laiendab `if`-tingimust `WEBEID_USE_TEST_TSL` env-muutujaga — sunnib test-TSL-i
 - **`--profile prod`** korral source-patche EI tehta + `bin\Debug\net8.0\digidocpp.conf` `ts.url`-iga (Variant 2)
 
+**⚠️ Profile vs ASP.NET environment — oluline arusaam:**
+
+Remote-skriptis `--profile` tähendab **kaarditüüpi**, mitte ASP.NET-i `Hosting environment`-it. ASP.NET-i `Hosting environment` on remote-modes **ALATI `Production`** (ngrok-i `UseForwardedHeaders()` middleware vajab seda — Dev-modes oleks `UseHttpsRedirection()` aktiivne ja lõhuks ngrok-tunneli HTTP→HTTPS redirect-loop-iga).
+
+| `--profile` | Kaardid | ASP.NET Hosting env | Kuidas test-kaardid prod-modes tööle saavad |
+|---|---|---|---|
+| `dev` | **Test**-kaardid (JÕEORG jms) | Production (alati remote-modes) | Source-patchid `Startup.cs` (`LoadTrustedCaCertificatesFromDisk(true)`) + `DigiDocConfiguration.cs` env-flag `WEBEID_USE_TEST_TSL=true` |
+| `prod` | **Live**-kaardid (päris ID) | Production (alati remote-modes) | Loomulik (Cert/Prod/*.cer + live TSL); `digidocpp.conf` `ts.url`-iga |
+
+Niisiis: kui logist näed `Hosting environment: Production` ka `--profile dev`-iga — see on **õige käitumine**, mitte bug.
+
 **Akna käitumine:**
 - Sama cmd-aken hoiab nii `dotnet run`-i kui ngrok-tunneli (PID Python-protsessis salvestatud)
 - **Ctrl+C** peatab MÕLEMAD (app + ngrok) — puhas väljumine

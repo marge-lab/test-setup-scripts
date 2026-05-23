@@ -588,11 +588,17 @@ def step_run_app(public_url: str):
     if PROFILE == "dev":
         env["WEBEID_USE_TEST_TSL"] = "true"  # aktiveerib test-TSL DigiDocConfiguration.cs-is
 
+    profile_explanation = (
+        "test ID-kaardid (test-CA + test-TSL source-patchidega)"
+        if PROFILE == "dev"
+        else "live ID-kaardid (digidocpp.conf ts.url-iga)"
+    )
     print()
     print(f"{G}════════════════════════════════════════════════════════════════{N}")
     print(f"{G}  Brauser:        {public_url}{N}")
     print(f"{G}  ngrok inspector: http://127.0.0.1:4040{N}")
-    print(f"{G}  Profile: {PROFILE}{N}")
+    print(f"{G}  Profile: {PROFILE} ({profile_explanation}){N}")
+    print(f"{G}  ASP.NET env: Production (ALATI remote-modes — ngrok-i jaoks){N}")
     print(f"{G}════════════════════════════════════════════════════════════════{N}")
     print()
     print(f"  {Y}Brauser avaneb automaatselt 8 sek parast app-i kaivitust.{N}")
