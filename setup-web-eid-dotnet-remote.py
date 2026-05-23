@@ -467,13 +467,32 @@ def step_source_patches_dev():
 
     Vajalik kuna ngrok-i jaoks peab ASPNETCORE_ENVIRONMENT olema Production
     (ForwardedHeaders middleware), aga test-kaardid eeldavad Dev-mode konf-i.
+
+    NB! Esmalt taastame Startup.cs ja DigiDocConfiguration.cs git HEAD-ist.
+    Põhjus: kui kasutaja jooksis varem --profile dev ja siis vahetas
+    --profile prod-iks, jäi Startup.cs-i `LoadTrustedCaCertificatesFromDisk(true)`
+    (test-CA-de laadimine). Tagajärg: prod-profile-i ajal laaditi
+    Certificates/Dev/ kausta test-CA-d, mitte Certificates/Prod/ live-CA-d.
+    Live-kaardi autentimine kukub CertificateNotTrustedException-iga, kuigi
+    cert-failid ja chain on õiged.
     """
+    step(9, 15, "Source-patchid: Startup.cs + DigiDocConfiguration.cs")
+
+    # Taasta lähekood git HEAD-ist (eemaldab eelmise profile-i jäänukid)
+    for f in (STARTUP_CS, DIGIDOC_CONFIG_CS):
+        if f.is_file():
+            result = subprocess.run(
+                ["git", "-C", str(REPO_DIR), "checkout", "HEAD", "--", str(f)],
+                capture_output=True, check=False, text=True,
+            )
+            if result.returncode == 0:
+                info(f"Taastatud git HEAD-ist: {f.name}")
+            else:
+                warn(f"git checkout {f.name} ebaõnnestus: {result.stderr.strip()}")
+
     if PROFILE != "dev":
-        step(9, 15, "Source-patchid (skipitud — prod-profile ei vaja)")
         info("Prod-profile: live-CA-d ja live-TSL kasutusel — source-patche pole vaja.")
         return
-
-    step(9, 15, "Source-patchid: Startup.cs + DigiDocConfiguration.cs (dev-profile)")
 
     # Startup.cs — sunni test-CA-de laadimine ka Production-modes
     if STARTUP_CS.is_file():
@@ -538,6 +557,18 @@ def step_tsl_flag():
 # --- 11. Build --------------------------------------------------------------
 def step_build():
     step(12, 15, "Ehitamine (dotnet restore + build)")
+
+    # Tapa kõik vanad WebEid.AspNetCore.Example protsessid mis eelmistest käivitustest
+    # alles ja hoiavad bin/Debug/net8.0/*.dll faile lukus. Ilma selleta kukub build
+    # MSB3027 (Could not copy ... file is locked) veaga.
+    if platform.system() == "Windows":
+        subprocess.run(
+            ["taskkill", "/F", "/IM", "WebEid.AspNetCore.Example.exe"],
+            capture_output=True, check=False,
+        )
+    else:
+        subprocess.run(["pkill", "-f", "WebEid.AspNetCore.Example"], check=False)
+
     build_target = str(SLN) if SLN.is_file() else str(CSPROJ)
     info(f"Build target: {Path(build_target).name}")
     # NB: --no-incremental sunnib dotnet build-i alati taasehitama. Vajalik kui
@@ -669,7 +700,7 @@ def step_run_app(public_url: str):
         run([
             "dotnet", "run", "--project", str(CSPROJ),
             "--configuration", "Debug", "--no-build", "--no-launch-profile",
-        ], check=False, env=env)
+        ], check=False, env=env, cwd=str(EXAMPLE_DIR))
     except KeyboardInterrupt:
         print("\nRakendus peatatud (Ctrl+C).")
     finally:

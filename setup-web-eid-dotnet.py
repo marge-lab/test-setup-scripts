@@ -478,6 +478,18 @@ def step_tsl_flag() -> None:
 # --- 9. Build (dotnet restore + build) -------------------------------------
 def step_build() -> None:
     step(9, 10, "Ehitamine (dotnet restore + build)")
+
+    # Tapa kõik vanad WebEid.AspNetCore.Example protsessid mis eelmistest käivitustest
+    # alles ja hoiavad bin/Debug/net8.0/*.dll faile lukus. Ilma selleta kukub build
+    # MSB3027 (Could not copy ... file is locked) veaga.
+    if platform.system() == "Windows":
+        subprocess.run(
+            ["taskkill", "/F", "/IM", "WebEid.AspNetCore.Example.exe"],
+            capture_output=True, check=False,
+        )
+    else:
+        subprocess.run(["pkill", "-f", "WebEid.AspNetCore.Example"], check=False)
+
     build_target = str(SLN) if SLN.is_file() else str(CSPROJ)
     info(f"Build target: {Path(build_target).name}")
     run(["dotnet", "restore", build_target])
@@ -573,7 +585,7 @@ def step_copy_native_libs_and_run() -> None:
             "--configuration", "Debug",
             "--no-build",  # ei taasehitata — siis ei kustutata kopeeritud natiivteege
             "--no-launch-profile",  # skipib launchSettings.json (hardcoded Dev ENVIRONMENT)
-        ], check=False, env=env)
+        ], check=False, env=env, cwd=str(EXAMPLE_DIR))
     except KeyboardInterrupt:
         print("\nRakendus peatatud (Ctrl+C).")
 
