@@ -207,10 +207,11 @@ python3 setup-web-eid-dotnet.py
 3. Kontrollib **libdigidocpp** dev-teeki ja paigaldab uusima `libdigidocpp*x64.msi` GitHub releases-ist (<https://github.com/open-eid/libdigidocpp/releases>). **NB!** See EI OLE sama mis DigiDoc4 Client (kasutaja-tarkvara) — `libdigidocpp` on developer-teek, mida vajab .NET näiterakendus
 4. Kloonib `web-eid-authtoken-validation-dotnet` main-haru
 5. Patchib `.csproj`: `PackageReference WebEid.Security` → `ProjectReference` (lokaalne lähtekood)
-6. Kopeerib `C:\Program Files\libdigidocpp\include\digidocpp_csharp\*.cs` → projekti `DigiDoc/`, ülejäänud libdigidocpp failid → `bin\Debug\net8.0\` (vastab ametlikule juhendile)
+6. Kopeerib `C:\Program Files\libdigidocpp\include\digidocpp_csharp\*.cs` → projekti `DigiDoc/` (enne build-i, kuna .cs failid kompileeritakse projekti)
 7. Seadistab HTTPS dev-sertifikaadi (`dotnet dev-certs https --trust`)
 8. Loob test-TSL flag-faili: Windowsil `%APPDATA%\digidocpp\tsl\EE_T.xml` (Roaming, MITTE Local), macOS-il `~/.digidocpp/tsl/EE_T.xml`
-9. Ehitab + käivitab — brauser avaneb automaatselt aadressil `https://localhost:44391`
+9. Ehitab — `dotnet restore` + `dotnet build`
+10. Kopeerib **pärast build-i** ülejäänud libdigidocpp failid (DLL-id + `schema/` kaust) → `bin\Debug\net8.0\` (vastab ametliku juhendi sammule `xcopy /s` ja "Also copy folder schema"). Käivitab `dotnet run --no-build` ja avab brauseri.
 
 </details>
 

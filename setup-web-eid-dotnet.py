@@ -202,7 +202,7 @@ def winget_install(package_id: str, friendly_name: str) -> None:
 
 # --- 1. .NET 8 SDK ----------------------------------------------------------
 def step_dotnet_sdk() -> None:
-    step(1, 9, ".NET 8 SDK")
+    step(1, 10, ".NET 8 SDK")
     if has_command("dotnet"):
         try:
             result = run(["dotnet", "--list-sdks"], capture=True, check=False)
@@ -231,7 +231,7 @@ def step_dotnet_sdk() -> None:
 
 # --- 2. Git -----------------------------------------------------------------
 def step_git() -> None:
-    step(2, 9, "Git")
+    step(2, 10, "Git")
     if has_command("git"):
         result = run(["git", "--version"], capture=True)
         info(result.stdout.strip())
@@ -287,7 +287,7 @@ def download_latest_libdigidocpp_msi() -> Path:
 
 
 def step_libdigidocpp() -> None:
-    step(3, 9, "libdigidocpp (dev-teek, MITTE DigiDoc4 Client)")
+    step(3, 10, "libdigidocpp (dev-teek, MITTE DigiDoc4 Client)")
 
     if is_libdigidocpp_installed():
         info(f"libdigidocpp on juba paigaldatud: {LIBDIGIDOCPP_BASE}")
@@ -337,7 +337,7 @@ def step_libdigidocpp() -> None:
 
 # --- 4. Repo kloonimine -----------------------------------------------------
 def step_clone_repo() -> None:
-    step(4, 9, "Repo kloonimine")
+    step(4, 10, "Repo kloonimine")
     PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 
     if (REPO_DIR / ".git").is_dir():
@@ -355,7 +355,7 @@ def step_clone_repo() -> None:
 
 # --- 5. .csproj patch -------------------------------------------------------
 def step_patch_csproj() -> None:
-    step(5, 9, "WebEid.Security viide (PackageReference -> ProjectReference)")
+    step(5, 10, "WebEid.Security viide (PackageReference -> ProjectReference)")
     if not CSPROJ.is_file():
         fail(f"{CSPROJ} puudub (repo struktuur muutunud?)")
 
@@ -379,19 +379,20 @@ def step_patch_csproj() -> None:
     info(f"OK: {CSPROJ.name} uuendatud — ProjectReference WebEid.Security")
 
 
-# --- 6. libdigidocpp failide kopeerimine projektisse -----------------------
-def step_copy_digidoc_files() -> None:
-    """Kopeeri libdigidocpp C# bindings + natiivteegid projektisse.
+# --- 6. C# bindings projektisse (.cs failid) -------------------------------
+def step_copy_cs_bindings() -> None:
+    """Kopeeri libdigidocpp C# bindings projekt-i DigiDoc/ kausta.
 
-    Vastab ametlikule juhendile:
+    Ametlik juhend (Windows):
       copy "C:\\Program Files\\libdigidocpp\\include\\digidocpp_csharp" DigiDoc
-      mkdir bin\\Debug\\net8.0
-      xcopy /s "C:\\Program Files\\libdigidocpp\\" bin\\Debug\\net8.0
+
+    .cs failid lahevad PROJEKTI SOURCE-kausta (DigiDoc/), sest neid
+    kompileeritakse rakendusse. Natiivteegid (DLL-id, schema/) laevad
+    eraldi sammus parast build-i (vt step_copy_native_libs).
     """
-    step(6, 9, "libdigidocpp failide kopeerimine projektisse")
+    step(6, 10, "libdigidocpp C# bindings (.cs failid) projektisse")
     DIGIDOC_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 1. C# bindings (*.cs) — include/digidocpp_csharp → projekt-i DigiDoc/
     cs_source = LIBDIGIDOCPP_BASE / "include" / "digidocpp_csharp"
     if not cs_source.is_dir():
         fail(
@@ -406,26 +407,10 @@ def step_copy_digidoc_files() -> None:
         shutil.copy2(cs_file, dst)
     info(f"C# bindings kopeeritud DigiDoc/-i: {len(cs_files)} faili")
 
-    # 2. Koik libdigidocpp failid (DLL-id jne) → bin/Debug/net8.0/
-    # NB: ametlik juhend kasutab xcopy /s — rekursiivselt koik failid + alamkataloogid.
-    # Pythonis sama: rglob + shutil.copy2 iga faili kohta.
-    bin_dir = EXAMPLE_DIR / "bin" / "Debug" / "net8.0"
-    bin_dir.mkdir(parents=True, exist_ok=True)
-    info(f"Kopeerin libdigidocpp failid build output-i: {bin_dir}")
-    copied = 0
-    for item in LIBDIGIDOCPP_BASE.rglob("*"):
-        if item.is_file():
-            rel = item.relative_to(LIBDIGIDOCPP_BASE)
-            dst = bin_dir / rel
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(item, dst)
-            copied += 1
-    info(f"libdigidocpp failid kopeeritud: {copied} faili")
-
 
 # --- 7. HTTPS dev-sertifikaat -----------------------------------------------
 def step_dev_cert() -> None:
-    step(7, 9, "HTTPS dev-sertifikaat (dotnet dev-certs)")
+    step(7, 10, "HTTPS dev-sertifikaat (dotnet dev-certs)")
     # `dotnet dev-certs https --trust` lisab Windowsi cert-store-i voi macOS Keychain-i
     run(["dotnet", "dev-certs", "https", "--trust"], check=False)
     info("Dev-sertifikaat usaldatud (vajab voib-olla kasutaja-kinnitust dialoogis).")
@@ -433,7 +418,7 @@ def step_dev_cert() -> None:
 
 # --- 8. Test-TSL flag -------------------------------------------------------
 def step_tsl_flag() -> None:
-    step(8, 9, "Test-TSL flag (EE_T.xml)")
+    step(8, 10, "Test-TSL flag (EE_T.xml)")
     # libdigidocpp loeb TSL cache'i:
     #   Windows: %APPDATA%\digidocpp\tsl\   (Roaming AppData, NB! mitte %LOCALAPPDATA%)
     #   macOS:   ~/Library/Containers/.../digidocpp/tsl/  VOI ~/.digidocpp/tsl/
@@ -451,17 +436,48 @@ def step_tsl_flag() -> None:
     info("EE_T.xml tuhi fail = libdigidocpp lubab test ID-kaartide sertifikaate.")
 
 
-# --- 9. Ehitamine + kaivitamine ---------------------------------------------
-def step_build_and_run() -> None:
-    step(9, 9, "Ehitamine + rakenduse kaivitamine")
-
+# --- 9. Build (dotnet restore + build) -------------------------------------
+def step_build() -> None:
+    step(9, 10, "Ehitamine (dotnet restore + build)")
     build_target = str(SLN) if SLN.is_file() else str(CSPROJ)
     info(f"Build target: {Path(build_target).name}")
-
-    # Restore
     run(["dotnet", "restore", build_target])
-    # Build
     run(["dotnet", "build", build_target, "--configuration", "Debug"])
+
+
+# --- 10. Kopeeri libdigidocpp natiivteegid + schema → bin/, käivita ---------
+def step_copy_native_libs_and_run() -> None:
+    """Kopeeri libdigidocpp DLL-id + schema/ kausta bin/Debug/net8.0/ ja
+    kaivita rakendus.
+
+    Ametlik juhend (Windows):
+      xcopy /s "C:\\Program Files\\libdigidocpp\\" bin\\Debug\\net8.0
+      (Lisaks: schema-kaust)
+
+    NB: see toimub PARAST build-i, et build ei kustutaks neid faile.
+    Build loob bin/Debug/net8.0/ kataloogi ja paneb .exe + .dll sinna —
+    libdigidocpp natiivteegid lisame siia pPRAST seda.
+    """
+    step(10, 10, "libdigidocpp natiivteegid build output-i + kaivitamine")
+
+    bin_dir = EXAMPLE_DIR / "bin" / "Debug" / "net8.0"
+    if not bin_dir.is_dir():
+        fail(f"Build output ei eksisteeri: {bin_dir} (build vist ebaonnestus)")
+
+    info(f"Kopeerin libdigidocpp failid: {LIBDIGIDOCPP_BASE} → {bin_dir}")
+    # rglob koik failid (sh schema/ alamkataloog), kopeeri suhteline strukt.
+    copied = 0
+    for item in LIBDIGIDOCPP_BASE.rglob("*"):
+        if item.is_file():
+            rel = item.relative_to(LIBDIGIDOCPP_BASE)
+            # Vahele jata include/-kaust (need on .cs failid, juba kopeeritud sammus 6)
+            if rel.parts and rel.parts[0] == "include":
+                continue
+            dst = bin_dir / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, dst)
+            copied += 1
+    info(f"Natiivteegid + schema/ kopeeritud: {copied} faili")
 
     # Kaivitamine
     print()
@@ -469,12 +485,10 @@ def step_build_and_run() -> None:
     print(f"{G}  Kaivitan rakenduse: {APP_URL}{N}")
     print(f"{G}════════════════════════════════════════════════════════════════{N}")
     print()
-    print(f"  {Y}Brauser avaneb automaatselt 5 sek parast app-i kaivitust.{N}")
+    print(f"  {Y}Brauser avaneb automaatselt 8 sek parast app-i kaivitust.{N}")
     print(f"  {Y}Peatamiseks: Ctrl+C selles aknas.{N}")
     print()
 
-    # Kaivita app foreground-is, et logi oleks SAMAS aknas reaalajas naha.
-    # Brauseri avamiseks spawn-ime taustal luhikese viite jarel.
     import threading
     def open_browser_delayed():
         time.sleep(8)
@@ -486,6 +500,7 @@ def step_build_and_run() -> None:
             "dotnet", "run",
             "--project", str(CSPROJ),
             "--configuration", "Debug",
+            "--no-build",  # ei taasehitata — siis ei kustutata kopeeritud natiivteege
         ], check=False)
     except KeyboardInterrupt:
         print("\nRakendus peatatud (Ctrl+C).")
@@ -509,10 +524,11 @@ def main() -> None:
         step_libdigidocpp()
         step_clone_repo()
         step_patch_csproj()
-        step_copy_digidoc_files()
+        step_copy_cs_bindings()      # .cs failid → DigiDoc/ (enne build-i)
         step_dev_cert()
         step_tsl_flag()
-        step_build_and_run()
+        step_build()                 # dotnet restore + build
+        step_copy_native_libs_and_run()  # DLL-id + schema → bin/, dotnet run
     except KeyboardInterrupt:
         print("\nKatkestatud kasutaja poolt (Ctrl+C).")
         sys.exit(130)
