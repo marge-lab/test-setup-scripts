@@ -202,7 +202,7 @@ def winget_install(package_id: str, friendly_name: str):
 
 # --- 1. .NET 8 SDK ----------------------------------------------------------
 def step_dotnet_sdk():
-    step(1, 14, ".NET 8 SDK")
+    step(1, 15, ".NET 8 SDK")
     if has_command("dotnet"):
         result = run(["dotnet", "--list-sdks"], capture=True, check=False)
         if result.returncode == 0 and any(l.startswith("8.") for l in result.stdout.splitlines()):
@@ -222,7 +222,7 @@ def step_dotnet_sdk():
 
 # --- 2. Git -----------------------------------------------------------------
 def step_git():
-    step(2, 14, "Git")
+    step(2, 15, "Git")
     if has_command("git"):
         run(["git", "--version"], capture=True)
         info("Git juba paigaldatud")
@@ -238,7 +238,7 @@ def is_libdigidocpp_installed():
     return (LIBDIGIDOCPP_BASE / "include" / "digidocpp_csharp").is_dir()
 
 def step_libdigidocpp():
-    step(3, 14, "libdigidocpp (dev-teek, MITTE DigiDoc4 Client)")
+    step(3, 15, "libdigidocpp (dev-teek, MITTE DigiDoc4 Client)")
     if is_libdigidocpp_installed():
         info(f"libdigidocpp on juba paigaldatud: {LIBDIGIDOCPP_BASE}")
         return
@@ -272,7 +272,7 @@ def step_libdigidocpp():
 
 # --- 4. ngrok download + extract --------------------------------------------
 def step_ngrok_install():
-    step(4, 14, "ngrok install (download + extract)")
+    step(4, 15, "ngrok install (download + extract)")
     if NGROK_BIN.is_file():
         info(f"ngrok juba paigaldatud: {NGROK_BIN}")
         # Lisa TOOLS_DIR PATH-i, et `ngrok` kasud tootaksid jooksvas seansis
@@ -306,7 +306,7 @@ def get_ngrok_config_path() -> Path:
     return HOME / "Library" / "Application Support" / "ngrok" / "ngrok.yml"
 
 def step_ngrok_auth():
-    step(5, 14, "ngrok auth token")
+    step(5, 15, "ngrok auth token")
     config_path = get_ngrok_config_path()
     if config_path.is_file() and "authtoken:" in config_path.read_text(encoding="utf-8", errors="ignore"):
         info(f"ngrok auth-token juba seadistatud: {config_path}")
@@ -385,7 +385,7 @@ def step_ngrok_auth():
 
 # --- 6. Repo kloonimine -----------------------------------------------------
 def step_clone_repo():
-    step(6, 14, "Repo kloonimine")
+    step(6, 15, "Repo kloonimine")
     PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
     if (REPO_DIR / ".git").is_dir():
         info(f"Repo juba olemas: {REPO_DIR}")
@@ -398,7 +398,7 @@ def step_clone_repo():
 
 # --- 7. Patch .csproj -------------------------------------------------------
 def step_patch_csproj():
-    step(7, 14, "WebEid.Security viide (PackageReference -> ProjectReference)")
+    step(7, 15, "WebEid.Security viide (PackageReference -> ProjectReference)")
     if not CSPROJ.is_file():
         fail(f"{CSPROJ} puudub")
     content = CSPROJ.read_text(encoding="utf-8")
@@ -413,7 +413,52 @@ def step_patch_csproj():
     CSPROJ.write_text(new, encoding="utf-8")
     info(f"OK: {CSPROJ.name} uuendatud")
 
-# --- 8. Patch Startup.cs + DigiDocConfiguration.cs (ainult --profile dev) ---
+# --- 8. CA-sertifikaatide kontroll (Dev + Prod kaustad) --------------------
+def step_ensure_ca_certs() -> None:
+    """Lae alla puuduvad ESTEID CA-sertifikaadid Certificates/Dev/ ja /Prod/ alla.
+
+    Upstream-i repos voivad puududa uuemad CA-d (nt ESTEID2025). Kui kasutaja
+    kaart on signeeritud sellise CA-ga, autentimine kukub
+    `CertificateNotTrustedException`-iga. See samm tagab, et kaks aktuaalset
+    versiooni (2018, 2025) on alati olemas mõlemas kataloogis.
+    """
+    step(8, 15, "CA-sertifikaatide kontroll (Dev + Prod kaustad)")
+    cert_dev = EXAMPLE_DIR / "Certificates" / "Dev"
+    cert_prod = EXAMPLE_DIR / "Certificates" / "Prod"
+    cert_dev.mkdir(parents=True, exist_ok=True)
+    cert_prod.mkdir(parents=True, exist_ok=True)
+
+    # Live CA-d (Prod-kausta) — kasutaja paris ID-kaardi sertifikaadi-vanemad
+    live_cas = [
+        ("ESTEID2018.cer", "https://c.sk.ee/esteid2018.der.crt"),
+        ("ESTEID2025.cer", "https://crt.eidpki.ee/ESTEID2025.crt"),
+    ]
+    # Test CA-d (Dev-kausta) — test-kaartide sertifikaadi-vanemad
+    test_cas = [
+        ("TEST_of_ESTEID2018.cer", "https://sk.ee/upload/files/TEST_of_ESTEID2018.der.crt"),
+        ("TestESTEID2025.cer", "https://installer.id.ee/media/id2025/TestChain/TestESTEID2025.crt"),
+    ]
+
+    def _ensure(name: str, url: str, target_dir: Path, label: str) -> None:
+        dst = target_dir / name
+        if dst.is_file() and dst.stat().st_size > 0:
+            info(f"{label}: {name} juba olemas ({dst.stat().st_size} B)")
+            return
+        try:
+            urllib.request.urlretrieve(url, dst)
+            info(f"{label}: {name} alla laaditud ({dst.stat().st_size} B)")
+        except Exception as e:
+            warn(f"{label}: {name} download ebaonnestus ({e}). Kui sul on selle CA-ga kaart, autentimine voib kukkuda.")
+
+    info("Live CA-d (Prod/):")
+    for name, url in live_cas:
+        _ensure(name, url, cert_prod, "  Live")
+    info("Test CA-d (Dev/):")
+    for name, url in test_cas:
+        _ensure(name, url, cert_dev, "  Test")
+
+
+# --- 9. Patch Startup.cs + DigiDocConfiguration.cs (ainult --profile dev) ---
 def step_source_patches_dev():
     """Production-modes test-CA-de ja test-TSL-i sundimine — AINULT --profile dev.
 
@@ -421,11 +466,11 @@ def step_source_patches_dev():
     (ForwardedHeaders middleware), aga test-kaardid eeldavad Dev-mode konf-i.
     """
     if PROFILE != "dev":
-        step(8, 14, "Source-patchid (skipitud — prod-profile ei vaja)")
+        step(9, 15, "Source-patchid (skipitud — prod-profile ei vaja)")
         info("Prod-profile: live-CA-d ja live-TSL kasutusel — source-patche pole vaja.")
         return
 
-    step(8, 14, "Source-patchid: Startup.cs + DigiDocConfiguration.cs (dev-profile)")
+    step(9, 15, "Source-patchid: Startup.cs + DigiDocConfiguration.cs (dev-profile)")
 
     # Startup.cs — sunni test-CA-de laadimine ka Production-modes
     if STARTUP_CS.is_file():
@@ -460,7 +505,7 @@ def step_source_patches_dev():
 
 # --- 9. Copy .cs files ------------------------------------------------------
 def step_copy_cs_bindings():
-    step(9, 14, "libdigidocpp C# bindings (.cs failid) projektisse")
+    step(10, 15, "libdigidocpp C# bindings (.cs failid) projektisse")
     DIGIDOC_DIR.mkdir(parents=True, exist_ok=True)
     cs_source = LIBDIGIDOCPP_BASE / "include" / "digidocpp_csharp"
     if not cs_source.is_dir():
@@ -473,10 +518,10 @@ def step_copy_cs_bindings():
 # --- 10. Test-TSL flag (ainult --profile dev) -------------------------------
 def step_tsl_flag():
     if PROFILE == "prod":
-        step(10, 14, "TSL config (prod-profile — EE_T.xml ei vaja)")
+        step(11, 15, "TSL config (prod-profile — EE_T.xml ei vaja)")
         info("Live-kaardid kasutavad live TSL-i.")
         return
-    step(10, 14, "Test-TSL flag (EE_T.xml)")
+    step(11, 15, "Test-TSL flag (EE_T.xml)")
     if IS_WINDOWS:
         appdata = Path(os.environ.get("APPDATA", HOME / "AppData" / "Roaming"))
         tsl_dir = appdata / "digidocpp" / "tsl"
@@ -489,7 +534,7 @@ def step_tsl_flag():
 
 # --- 11. Build --------------------------------------------------------------
 def step_build():
-    step(11, 14, "Ehitamine (dotnet restore + build)")
+    step(12, 15, "Ehitamine (dotnet restore + build)")
     build_target = str(SLN) if SLN.is_file() else str(CSPROJ)
     info(f"Build target: {Path(build_target).name}")
     run(["dotnet", "restore", build_target])
@@ -498,7 +543,7 @@ def step_build():
 # --- 12. Start ngrok tunnel + update appsettings.json -----------------------
 def step_ngrok_tunnel():
     global NGROK_PROC
-    step(12, 14, "ngrok tunnel kaivitamine")
+    step(13, 15, "ngrok tunnel kaivitamine")
     info(f"Kaivitan: ngrok http {APP_PORT}")
     ngrok_log = TOOLS_DIR / "ngrok.log"
     NGROK_PROC = subprocess.Popen(
@@ -551,7 +596,7 @@ def step_ngrok_tunnel():
 
 # --- 13. Copy native libs + digidocpp.conf (prod) ---------------------------
 def step_copy_native_libs():
-    step(13, 14, "libdigidocpp natiivteegid build output-i")
+    step(14, 15, "libdigidocpp natiivteegid build output-i")
     bin_dir = EXAMPLE_DIR / "bin" / "Debug" / "net8.0"
     if not bin_dir.is_dir():
         fail(f"Build output ei eksisteeri: {bin_dir}")
@@ -581,7 +626,7 @@ def step_copy_native_libs():
 
 # --- 14. Run app (ngrok + dotnet) -------------------------------------------
 def step_run_app(public_url: str):
-    step(14, 14, f"Rakenduse kaivitamine ({public_url})")
+    step(15, 15, f"Rakenduse kaivitamine ({public_url})")
     env = os.environ.copy()
     env["ASPNETCORE_ENVIRONMENT"] = "Production"  # alati Production (ngrok ForwardedHeaders)
     env["ASPNETCORE_URLS"] = APP_URL_LOCAL
@@ -643,6 +688,7 @@ def main():
         step_ngrok_auth()
         step_clone_repo()
         step_patch_csproj()
+        step_ensure_ca_certs()
         step_source_patches_dev()
         step_copy_cs_bindings()
         step_tsl_flag()
