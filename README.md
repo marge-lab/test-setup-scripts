@@ -29,6 +29,7 @@ Repo `main`-harust ehitatud rakendused — sobivad reliisi-testimiseks.
 | [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (ngrok-iga) | Ubuntu, macOS |
 | [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (lokaalne) | Ubuntu |
 | [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok (avalik HTTPS) | Ubuntu |
+| [`setup-web-eid-dotnet.py`](setup-web-eid-dotnet.py) (+ [`.cmd`](setup-web-eid-dotnet.cmd)) | Web eID .NET näiterakendus (Python-skript; lokaalne) | Windows, macOS |
 
 <details>
 <summary><b>PHP — Ubuntu (lokaalne, HTTPS localhost)</b></summary>
@@ -153,6 +154,63 @@ Skript käivitab `dotnet run`-i vaikimisi **`Development`**-režiimis
 ID-kaartidega** testimist (`~/.digidocpp/tsl/EE_T.xml` lubab test-CA-d).
 
 Vajadusel küsib skript sudo parooli (`libdigidocpp-csharp` paigaldamiseks).
+
+</details>
+
+<details>
+<summary><b>.NET — Windows / macOS (Python-skriptiga, lokaalne)</b></summary>
+
+Cross-platform Python-skript, mis paigaldab .NET 8 SDK, Git-i ja
+DigiDoc4 Client-i (kui pole), kloonib repo, patchib `.csproj`-i ja
+käivitab näiterakenduse `https://localhost:44391`. Sõltuvused: ainult
+Python 3.8+ standard-teek (EI vaja `pip install`-i).
+
+**Töövoog:**
+
+```
+Windows-i kasutaja:  topeltklikk setup-web-eid-dotnet.cmd
+                     → kontrollib Python (paigaldab winget-iga kui pole)
+                     → käivitab setup-web-eid-dotnet.py
+macOS-i kasutaja:    python3 setup-web-eid-dotnet.py    (otse terminalis)
+```
+
+**Windows:**
+
+```powershell
+# PowerShell: lae alla cmd + py
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.cmd -OutFile setup-web-eid-dotnet.cmd
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.py -OutFile setup-web-eid-dotnet.py
+
+# Käivita topeltklikiga, või cmd-aknas:
+.\setup-web-eid-dotnet.cmd
+```
+
+Kui Python pole paigaldatud, `.cmd` küsib `Paigaldada Python nuud [Y/N]` ja
+paigaldab automaatselt winget-iga. Pärast Pythoni installi kuvab
+"sulge see aken, ava uus" sõnumi (PATH-i värskendus). Topeltkliki .cmd-l
+uuesti.
+
+**macOS:**
+
+```bash
+# Lae alla ainult .py (cmd pole vaja)
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.py
+
+# Käivita (Python tavaliselt juba olemas; kui pole: brew install python)
+python3 setup-web-eid-dotnet.py
+```
+
+**Skript:**
+
+1. Kontrollib + paigaldab .NET 8 SDK (`winget install Microsoft.DotNet.SDK.8` Windowsil, `brew install --cask dotnet-sdk` Mac-il)
+2. Kontrollib + paigaldab Git
+3. Kontrollib DigiDoc4 Client-i (libdigidocpp natiivteegi jaoks). Pakub winget/brew install.
+4. Kloonib `web-eid-authtoken-validation-dotnet` main-haru
+5. Patchib `.csproj`: `PackageReference WebEid.Security` → `ProjectReference` (lokaalne lähtekood)
+6. Kopeerib DigiDoc4 natiivteegi DLL + .cs failid projekti `DigiDoc/` kausta
+7. Seadistab HTTPS dev-sertifikaadi (`dotnet dev-certs https --trust`)
+8. Loob test-TSL flag-faili (`~/.digidocpp/tsl/EE_T.xml`)
+9. Ehitab + käivitab — brauser avaneb automaatselt aadressil `https://localhost:44391`
 
 </details>
 
