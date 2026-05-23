@@ -23,7 +23,6 @@ tarfile). EI vaja `pip install` kasku.
 """
 
 import argparse
-import getpass
 import json
 import os
 import platform
@@ -312,17 +311,48 @@ def step_ngrok_auth():
         info(f"ngrok auth-token juba seadistatud: {config_path}")
         if not ask_yn("Soovid uut tokenit lisada (asendab vana)?", default_yes=False):
             return
+
     info("Vaja ngrok auth-tokenit.")
-    info("Tokeni leiad: https://dashboard.ngrok.com/get-started/your-authtoken")
-    info("(Tasuta konto piisab.)")
-    info("Sisestus on VARJATUD (getpass) — tahti tippimisel/kleepides ekraanile ei kuvata,")
-    info("token ei salvestu terminali scrollback-i ega skripti logisse.")
+    info("Tokeni leiad: https://dashboard.ngrok.com/get-started/your-authtoken (tasuta konto piisab).")
     print()
-    # NB: kasutame getpass.getpass()-i et token ei satuks terminali ekraanile.
-    token = getpass.getpass(f"  {Y}? Kleebi ngrok auth-token (sisestus varjatud, Enter kui valmis):{N} ").strip()
+    info("Sisestada saab KOLMEL viisil — vali enda jaoks sobivaim:")
+    info("")
+    info("  1. ENV-MUUTUJA (kasige, kui scriptid jooksutad mitu korda)")
+    info("     cmd:        set NGROK_AUTH_TOKEN=2xxxxx... && setup-web-eid-dotnet-remote.cmd")
+    info("     PowerShell: $env:NGROK_AUTH_TOKEN='2xxxxx...'; .\\setup-web-eid-dotnet-remote.cmd")
+    info("")
+    info("  2. FAILIST (ohutu, paste pole vaja)")
+    info(f"     Salvesta token faili: {HOME / 'ngrok-auth-token.txt'}")
+    info("     Sisu: AINULT token, ilma ’ngrok config add-authtoken’ kasuta.")
+    info("     Pärast esimest jooksu kustuta fail käsitsi (token on juba ngrok.yml-is).")
+    info("")
+    info("  3. KÄSITSI siia konsooli (lihtsaim, kuid token nähtav scrollback-is)")
+    info("     Paremklikk = paste cmd-aknas / Ctrl+V Windows Terminal-is.")
+    info("")
+
+    # 1. Proovi env-muutujat
+    token = os.environ.get("NGROK_AUTH_TOKEN", "").strip()
+    if token:
+        info("Token loetud NGROK_AUTH_TOKEN env-muutujast.")
+    else:
+        # 2. Proovi failist
+        token_file = HOME / "ngrok-auth-token.txt"
+        if token_file.is_file():
+            token = token_file.read_text(encoding="utf-8").strip()
+            info(f"Token loetud failist: {token_file}")
+            info(f"NB! Kustuta see fail käsitsi kui pole enam vaja (sisaldab tokeni plaintekstis).")
+        else:
+            # 3. Käsitsi sisestus (input — paste tootab kindlasti, kuid nähtav)
+            print()
+            try:
+                token = input(f"  {Y}? Kleebi ngrok auth-token (jääb terminali kasutusajaks nähtavaks):{N} ").strip()
+            except (EOFError, KeyboardInterrupt):
+                fail("Token sisestus katkestatud.")
+
     if not token or len(token) < 20:
         fail("Token tyhi voi liiga lyhike. Loobun.")
-    # NB: ei kasuta run()-i kuna see trykiks token-i ekraanile. Skript kutsub
+
+    # NB: ei kasuta run()-i, kuna see trykiks tokeni ekraanile. Skript kutsub
     # subprocess.run otseselt + nakitab info-logist <REDACTED>.
     info("$ ngrok config add-authtoken <REDACTED>")
     result = subprocess.run(

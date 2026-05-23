@@ -273,14 +273,32 @@ python3 setup-web-eid-dotnet-remote.py            # dev
 python3 setup-web-eid-dotnet-remote.py --profile prod   # prod
 ```
 
-**Eeldused:** ngrok auth token (tasuta konto): <https://dashboard.ngrok.com/get-started/your-authtoken>. Skript küsib sinult tokenit ja salvestab selle `ngrok config`-iga.
+**Eeldused:** ngrok auth token (tasuta konto): <https://dashboard.ngrok.com/get-started/your-authtoken>. Skript pakub **kolme viisi tokeni sisestamiseks** (skript proovib järjekorras):
 
-**Token-i ohutus:**
-- Sisestus on **varjatud** (`getpass.getpass()`) — tippimisel/kleepides ekraanile ei kuvata. Token EI satu terminali scrollback-i ega skripti logisse.
-- Skript ei salvesta tokenit kuhugi muusse peale `ngrok`-i enda konfi (`C:\Users\<sina>\AppData\Local\ngrok\ngrok.yml`).
-- Sealt loeb seda **ainult ngrok-protsess ise** tunneli avamisel. Edaspidi pole vaja tokenit uuesti sisestada — skript küsib ainult kui konfis pole.
-- Kontrollida saad `C:\Users\<sina>\AppData\Local\ngrok\ngrok.yml` — peaks sisaldama ühte `authtoken: ...` rida.
-- Eemaldamiseks: kustuta see fail.
+1. **`NGROK_AUTH_TOKEN` env-muutuja:**
+   ```cmd
+   :: cmd
+   set NGROK_AUTH_TOKEN=2xxxxxxxxxxxxxxxxxxxx
+   .\setup-web-eid-dotnet-remote.cmd
+   ```
+   ```powershell
+   # PowerShell
+   $env:NGROK_AUTH_TOKEN='2xxxxxxxxxxxxxxxxxxxx'
+   .\setup-web-eid-dotnet-remote.cmd
+   ```
+   Token nähtav cmd-seansis, aga ei salvestu scrollback-i.
+
+2. **Tokeni-fail** (ohutuim, paste-i probleeme pole):
+   - Salvesta token (ainult token, mitte tervet `ngrok config add-authtoken ...` käsku) faili:
+     `C:\Users\<sina>\ngrok-auth-token.txt`
+   - Skript loeb selle automaatselt
+   - **Pärast esimest jooksu kustuta fail käsitsi** (token elab edaspidi ngrok.yml-is)
+
+3. **Käsitsi siia konsooli** (lihtsaim, kuid token jääb scrollback-i):
+   - Skript küsib `input()`-iga
+   - Paremklikk paste cmd-aknas, Ctrl+V Windows Terminal-is
+
+**Kus token tegelikult salvestub:** `C:\Users\<sina>\AppData\Local\ngrok\ngrok.yml`. Skript ise tokenit kuhugi mujale ei salvesta. Eemaldamiseks: kustuta see fail.
 
 **Erinevus lokaalsest Python-skriptist:**
 
