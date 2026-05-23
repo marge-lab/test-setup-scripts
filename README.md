@@ -209,7 +209,15 @@ python3 setup-web-eid-dotnet.py
 4. Kloonib `web-eid-authtoken-validation-dotnet` main-haru
 5. Patchib `.csproj`: `PackageReference WebEid.Security` → `ProjectReference` (lokaalne lähtekood)
 6. Kopeerib `C:\Program Files\libdigidocpp\include\digidocpp_csharp\*.cs` → projekti `DigiDoc/` (enne build-i, kuna .cs failid kompileeritakse projekti)
-7. Seadistab HTTPS dev-sertifikaadi (`dotnet dev-certs https --trust`)
+7. Seadistab HTTPS dev-sertifikaadi (`dotnet dev-certs https --trust`).
+   **⚠️ Windowsil avaneb turvadialoog "Security Warning — Install certificate?":**
+   - **Vajuta "Yes"** — sertifikaat lisatakse Windows-i Trusted Root-i,
+     `https://localhost:44391` töötab ilma brauseri-hoiatusteta, Web eID
+     extension saab korrektselt töötada.
+   - **Kui klõpsad "No"** — paigaldus on **katki**: brauser näitab
+     "Your connection is not private" hoiatust ja Web eID extension võib
+     keelduda HTTPS-päringust. Sertifikaat on self-signed AINULT `localhost`-i
+     jaoks (sinu enda masin), pole turvaohtu — vajuta julgelt **Yes**.
 8. Loob test-TSL flag-faili: Windowsil `%APPDATA%\digidocpp\tsl\EE_T.xml` (Roaming, MITTE Local), macOS-il `~/.digidocpp/tsl/EE_T.xml`
 9. Ehitab — `dotnet restore` + `dotnet build`
 10. Kopeerib **pärast build-i** ülejäänud libdigidocpp failid (DLL-id + `schema/` kaust) → `bin\Debug\net8.0\` (vastab ametliku juhendi sammule `xcopy /s` ja "Also copy folder schema"). Käivitab `dotnet run --no-build` ja avab brauseri.
