@@ -25,6 +25,7 @@ Soltuvused: ainult Python stdlib (urllib, subprocess, pathlib, shutil).
 EI vaja `pip install` kasku.
 """
 
+import argparse
 import json
 import os
 import platform
@@ -41,6 +42,27 @@ from pathlib import Path
 if sys.version_info < (3, 8):
     print(f"VIGA: vajab Python 3.8+, paigaldatud {sys.version_info.major}.{sys.version_info.minor}")
     sys.exit(1)
+
+# --- Argumendid -------------------------------------------------------------
+_arg_parser = argparse.ArgumentParser(
+    description="Web eID .NET naiterakenduse paigaldus (Windows / macOS)",
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=(
+        "Profiilid:\n"
+        "  dev   = ASPNETCORE_ENVIRONMENT=Development (test ID-kaardid, vaikimisi)\n"
+        "  prod  = ASPNETCORE_ENVIRONMENT=Production  (live ID-kaardid;\n"
+        "          loob bin/Debug/net8.0/digidocpp.conf ts.url-iga\n"
+        "          https://eid-dd.ria.ee/ts (RIA test-TSA — paid kontaktita))"
+    ),
+)
+_arg_parser.add_argument(
+    "--profile",
+    choices=["dev", "prod"],
+    default="dev",
+    help="Kaivitusprofiil: dev (test-kaardid, vaikimisi) voi prod (live-kaardid)",
+)
+ARGS = _arg_parser.parse_args()
+PROFILE = ARGS.profile
 
 # --- UTF-8 konsool (Windows cp1252 valtimine) -------------------------------
 if sys.platform == "win32":
@@ -427,8 +449,14 @@ def step_dev_cert() -> None:
     info("Dev-sertifikaat usaldatud (vajab voib-olla kasutaja-kinnitust dialoogis).")
 
 
-# --- 8. Test-TSL flag -------------------------------------------------------
+# --- 8. Test-TSL flag (ainult dev-profile) ----------------------------------
 def step_tsl_flag() -> None:
+    if PROFILE == "prod":
+        step(8, 10, "TSL config (prod-profile — EE_T.xml ei vaja)")
+        info("Live-kaardid kasutavad live TSL-i. EE_T.xml-i ei loo.")
+        info("ts.url ulekirjutamine prod-TSA-le toimub sammus 10 (digidocpp.conf).")
+        return
+
     step(8, 10, "Test-TSL flag (EE_T.xml)")
     # libdigidocpp loeb TSL cache'i:
     #   Windows: %APPDATA%\digidocpp\tsl\   (Roaming AppData, NB! mitte %LOCALAPPDATA%)
@@ -490,10 +518,36 @@ def step_copy_native_libs_and_run() -> None:
             copied += 1
     info(f"Natiivteegid + schema/ kopeeritud: {copied} faili")
 
+    # Prod-profile: loo digidocpp.conf ts.url ulekirjutamisega
+    # Variant 2 ametlikust libdigidocpp juhendist — vahistab source-patche.
+    # ts.url = https://eid-dd.ria.ee/ts on RIA test-TSA (sobib testimiseks
+    # ilma paid SK-kontaktita). Pidev prod-keskkonna jaoks vaheta SK live TSA-le.
+    if PROFILE == "prod":
+        conf_path = bin_dir / "digidocpp.conf"
+        conf_content = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<configuration>\n'
+            '  <param name="ts.url" lock="false">https://eid-dd.ria.ee/ts</param>\n'
+            '</configuration>\n'
+        )
+        conf_path.write_text(conf_content, encoding="utf-8")
+        info(f"Prod-profile: loodud {conf_path}")
+        info("  ts.url = https://eid-dd.ria.ee/ts (RIA test-TSA)")
+
+    # Maara ASPNETCORE_ENVIRONMENT vastavalt profiilile
+    env = os.environ.copy()
+    if PROFILE == "prod":
+        env["ASPNETCORE_ENVIRONMENT"] = "Production"
+        env_label = "Production"
+    else:
+        env["ASPNETCORE_ENVIRONMENT"] = "Development"
+        env_label = "Development"
+
     # Kaivitamine
     print()
     print(f"{G}════════════════════════════════════════════════════════════════{N}")
     print(f"{G}  Kaivitan rakenduse: {APP_URL}{N}")
+    print(f"{G}  Profile: {PROFILE} (ASPNETCORE_ENVIRONMENT={env_label}){N}")
     print(f"{G}════════════════════════════════════════════════════════════════{N}")
     print()
     print(f"  {Y}Brauser avaneb automaatselt 8 sek parast app-i kaivitust.{N}")
@@ -512,14 +566,16 @@ def step_copy_native_libs_and_run() -> None:
             "--project", str(CSPROJ),
             "--configuration", "Debug",
             "--no-build",  # ei taasehitata — siis ei kustutata kopeeritud natiivteege
-        ], check=False)
+        ], check=False, env=env)
     except KeyboardInterrupt:
         print("\nRakendus peatatud (Ctrl+C).")
 
 
 # --- Main -------------------------------------------------------------------
 def main() -> None:
+    profile_label = "Production (live ID-kaardid)" if PROFILE == "prod" else "Development (test ID-kaardid)"
     print(f"{G}=== Web eID .NET naiterakenduse paigaldus ==={N}")
+    print(f"  Profile:  {PROFILE}  ({profile_label})")
     print(f"  Platvorm: {platform.system()} {platform.machine()}")
     print(f"  Python:   {sys.version.split()[0]}")
     print(f"  Kodukaust: {HOME}")

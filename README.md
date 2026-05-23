@@ -182,8 +182,11 @@ macOS-i kasutaja:    python3 setup-web-eid-dotnet.py    (otse terminalis)
 curl -o setup-web-eid-dotnet.cmd https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.cmd
 curl -o setup-web-eid-dotnet.py https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.py
 
-:: Käivita topeltklikiga failil VÕI cmd-aknas:
+:: Vaikimisi: dev-profile (test ID-kaardid, ASPNETCORE_ENVIRONMENT=Development)
 .\setup-web-eid-dotnet.cmd
+
+:: VOI: prod-profile (live ID-kaardid, ASPNETCORE_ENVIRONMENT=Production)
+.\setup-web-eid-dotnet.cmd --profile prod
 ```
 
 Kui Python pole paigaldatud, `.cmd` küsib `Paigaldada Python nuud [Y/N]` ja
@@ -197,8 +200,11 @@ uuesti.
 # Lae alla ainult .py (cmd pole vaja)
 curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet.py
 
-# Käivita (Python tavaliselt juba olemas; kui pole: brew install python)
+# Vaikimisi: dev-profile (test ID-kaardid)
 python3 setup-web-eid-dotnet.py
+
+# VOI: prod-profile (live ID-kaardid)
+python3 setup-web-eid-dotnet.py --profile prod
 ```
 
 **Skript:**
@@ -218,9 +224,22 @@ python3 setup-web-eid-dotnet.py
      "Your connection is not private" hoiatust ja Web eID extension võib
      keelduda HTTPS-päringust. Sertifikaat on self-signed AINULT `localhost`-i
      jaoks (sinu enda masin), pole turvaohtu — vajuta julgelt **Yes**.
-8. Loob test-TSL flag-faili: Windowsil `%APPDATA%\digidocpp\tsl\EE_T.xml` (Roaming, MITTE Local), macOS-il `~/.digidocpp/tsl/EE_T.xml`
+8. **Dev-profile:** loob test-TSL flag-faili (`%APPDATA%\digidocpp\tsl\EE_T.xml` Windowsil, `~/.digidocpp/tsl/EE_T.xml` macOS-il). **Prod-profile:** EE_T.xml-i ei loo (live-kaardid kasutavad live TSL-i).
 9. Ehitab — `dotnet restore` + `dotnet build`
-10. Kopeerib **pärast build-i** ülejäänud libdigidocpp failid (DLL-id + `schema/` kaust) → `bin\Debug\net8.0\` (vastab ametliku juhendi sammule `xcopy /s` ja "Also copy folder schema"). Käivitab `dotnet run --no-build` ja avab brauseri.
+10. Kopeerib **pärast build-i** ülejäänud libdigidocpp failid (DLL-id + `schema/` kaust) → `bin\Debug\net8.0\` (vastab ametliku juhendi sammule `xcopy /s` ja "Also copy folder schema"). **Prod-profile:** lisaks loob `bin\Debug\net8.0\digidocpp.conf` `ts.url`-iga (Variant 2 ametlikust juhendist — `https://eid-dd.ria.ee/ts` RIA test-TSA, ilma SK paid-kontaktita). Käivitab `dotnet run --no-build` koos `ASPNETCORE_ENVIRONMENT=Development` (dev) või `Production` (prod) ja avab brauseri.
+
+**Profiilide erinevus:**
+
+| Aspekt | `--profile dev` (vaikimisi) | `--profile prod` |
+|---|---|---|
+| ASP.NET keskkond | `Development` | `Production` |
+| ID-kaardid | Test-kaardid (JÕEORG jms) | Live-kaardid |
+| Trusted CA-d | `Certificates/Dev/*.cer` (test) | `Certificates/Prod/*.cer` (live) |
+| TSL | Test-TSL (`EE_T.xml` flag) | Live-TSL |
+| TSA URL | `http://demo.sk.ee/tsa` (test) | `https://eid-dd.ria.ee/ts` (RIA test, ilma paid-kontaktita) |
+| Source-patch DigiDocConfiguration.cs | ei | ei (kasutab Variant 2 — `digidocpp.conf`) |
+
+**Hoiatus prod-profile-i kohta:** `https://eid-dd.ria.ee/ts` on RIA **test-TSA** — sobib testimiseks, aga päris-produktsiooni jaoks vaja SK-tasulist TSA-kontot ja URL-i tuleb vahetada `https://eid.sk.ee/tsa`-le (või muule lepingu-kohasele).
 
 </details>
 
