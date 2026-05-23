@@ -155,6 +155,33 @@ def ask_yn(prompt: str, default_yes: bool = True) -> bool:
         print("  Vasta 'y' voi 'n' (Enter = vaikimisi)")
 
 
+def refresh_path_from_registry() -> None:
+    """Varskenda os.environ['PATH']-i Windows registry-st.
+
+    Vajalik parast winget install-i, kuna jooksvas Python-protsessis on
+    PATH cache-itud Pythoni kaivitumise ajast. Ilma selleta uus rakendus
+    (nt dotnet, git) ei oleks `shutil.which`-le nahtav, isegi kui winget
+    on selle juba paigaldanud.
+    """
+    if not IS_WINDOWS:
+        return
+    try:
+        ps_cmd = (
+            "[Environment]::GetEnvironmentVariable('Path','Machine') + ';' + "
+            "[Environment]::GetEnvironmentVariable('Path','User')"
+        )
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            capture_output=True, text=True, encoding="utf-8", check=True,
+        )
+        new_path = result.stdout.strip()
+        if new_path:
+            os.environ["PATH"] = new_path
+            info("PATH varskendatud registry-st (winget-i installid nyyd nahtaval)")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        warn("PATH-i varskendamine ebaonnestus — vaja voib olla skripti restart.")
+
+
 def winget_install(package_id: str, friendly_name: str) -> None:
     """Paigalda pakett winget-iga. Eeldab Windowsit."""
     if not IS_WINDOWS:
@@ -171,6 +198,8 @@ def winget_install(package_id: str, friendly_name: str) -> None:
         "--accept-package-agreements",
         "--silent",
     ])
+    # Parast install-i varskenda PATH-i, et jargmised sammud naeksid uut kasku.
+    refresh_path_from_registry()
 
 
 # --- 1. .NET 8 SDK ----------------------------------------------------------
