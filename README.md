@@ -116,31 +116,6 @@ less -R ~/tools/build.log
 </details>
 
 <details>
-<summary><b>Java — logi-müra mustrid (paistab imelik, aga OK)</b></summary>
-
-Maveni build-logis (`~/tools/build.log`) on mõned mustrid, mis esmapilgul
-tunduvad vigade või anomaaliatena, aga on tegelikult **normaalne
-oodatud käitumine**. See tabel aitab vältida ebavajalikku küsimuste
-voori.
-
-| Mida sa näed logis | Mis see tegelikult on | Kas see on viga? |
-|---|---|---|
-| **Täielik HTML-leht keset logi** (~50–300 rida HTML-i) | Spring Boot `WebApplicationTest` integratsioonitest käivitab `MockMvc.perform(get("/"))` ja kasutab `.andDo(MockMvcResultHandlers.print())` debug-handlerit, mis trükib täieliku HTTP-vastuse (sh HTML-keha) `System.out`-i. Maven Surefire kopeerib selle build-logisse. | Ei. Tahtlik testi debug-väljund. |
-| **`[WARNING] Tests run: X, ..., Skipped: N`** ridu | Maven Surefire märgib WARNING-iga testid, mille klassis on **vähemalt üks `@Disabled`-annotatsiooniga test**. Sõnum ise ei tähenda viga — testid läbisid, lihtsalt mõni jäeti vahele. | Ei. `@Disabled` on tahtlik koodi-tasandi otsus, **mitte** `-DskipTests` flag. |
-| **Sajad `Downloading from gitlab: ... 404`-tüüpi katsed** | Maven proovib esimesena GitLab-i paketiregistrit (mille seadistus on `pom.xml`-is), see kukub, lõpuks lahendus saadakse Maven Central-ist. | Ei. Lihtsalt logimüra. Kõik artefaktid laaditakse lõpuks central-ist alla edukalt. |
-| **Sama "Building authtoken-validation X.Y.Z" ilmub 2× järjest** | Setup-skript käivitab Maven-i mitu korda järjest (sammud 5/7 ja 6/7) — kõigepealt teek, siis näidisrakendus. Teine kord ehitatakse teek **uuesti**, sest näidisrakenduse build võtab parent-i kaasa. | Ei. Topelt-build, aga mitte viga. Kuluvad ~5 lisaminutit. |
-| **Spring Boot startup-logid testide keskel** (`Started ... in X seconds`) | `@SpringBootTest` annotatsiooniga test käivitab kogu Spring konteksti (Tomcati embed, Spring Security, DispatcherServlet). See on tüüpiline integratsioonitesti väljund. | Ei. Normaalne. |
-| **Allkirjastatud konteineri DEBUG-väljund** (sertifikaadid, ahel, OCSP-vastused) | Näidisrakenduse `SigningService` logib `DEBUG`-tasemel iga sammu allkirjastamise käigus (sertifikaadi-ahel, TSA-ajatempel, OCSP-päring). | Ei. Audit-info, kasulik häda korral. |
-
-**Üks vorming, mille puhul HOIATADA:**
-
-- **`[ERROR]`** (mitte `[WARNING]`!) — siis tasub uurida.
-- **`BUILD FAILURE`** — siis on viga, vaata viimast `[ERROR]`-rida.
-- **`Tests run: X, Failures: Y, Errors: Z`** kus `Y` või `Z` on **suurem kui 0** — testid kukkusid läbi.
-
-</details>
-
-<details>
 <summary><b>.NET — Ubuntu (lokaalne, HTTPS localhost:44391)</b></summary>
 
 ```bash
@@ -187,12 +162,19 @@ Erinevus lokaalsest skriptist:
 
 Repo **arendusharust** ehitatud rakendused — kasutatakse PR-ide testimiseks
 enne main-i ühendamist. Skript küsib (või võtab argumendiks) haru-nime,
-kloonib selle, ehitab WebEid library lokaalseks NuGet-paketiks (versiooniga
-`1.2.0-beta1`, et eristuda peamisest 1.2.0-st) ja kasutab seda example-app-i
-ehitamiseks.
+kloonib selle, ehitab valitud haru WebEid library lokaalselt ja kasutab
+seda example-app-i ehitamiseks. Iga keele jaoks veidi erinev pakkimine:
+
+- **.NET:** ehitatakse lokaalseks NuGet-paketiks versiooniga `1.2.0-beta1`
+  (eristub upstream-i 1.2.0-st)
+- **Java:** installitakse lokaalsesse Maven cache'i, example-app kasutab
+  automaatselt installitud versiooni
+- **PHP:** `composer.json` `repositories` blokis lisatakse git tüüpi
+  upstream-link, version constraint muudetakse `dev-<HARU>`-ks
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
+| [`setup-web-eid-java-branch.sh`](setup-web-eid-java-branch.sh) | Web eID Java näide suvalisest harust + ngrok | Ubuntu, macOS |
 | [`setup-web-eid-dotnet-branch.sh`](setup-web-eid-dotnet-branch.sh) | Web eID .NET näide suvalisest harust (lokaalne) | Ubuntu |
 | [`setup-web-eid-dotnet-branch-remote.sh`](setup-web-eid-dotnet-branch-remote.sh) | Web eID .NET näide suvalisest harust + ngrok | Ubuntu |
 | [`setup-web-eid-php-branch.sh`](setup-web-eid-php-branch.sh) | Web eID PHP näide suvalisest harust (lokaalne) | Ubuntu |
@@ -345,6 +327,62 @@ Erinevus lokaalsest haru-skriptist:
   **ebaõnnestumise korral avab automaatselt eraldi terminaliakna** test-logi
   vaatega (`less -R`), edukal läbimisel uut akent ei avane (vt lokaalse
   skripti kirjeldust eespool)
+
+</details>
+
+<details>
+<summary><b>Java haru-testimine — Ubuntu/macOS (ngrok-tunneliga)</b></summary>
+
+Sarnaselt .NET- ja PHP-harude testimisele, aga Java/Maven-i jaoks. Toetab
+nii Linuxit (Ubuntu) kui macOS-i (x86_64 + arm64). Sudo ei ole vajalik —
+JDK ja ngrok paigaldatakse `~/tools/` alla.
+
+```bash
+# Ubuntu
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-java-branch.sh
+chmod +x setup-web-eid-java-branch.sh
+
+# macOS
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-java-branch.sh
+chmod +x setup-web-eid-java-branch.sh
+
+# Kuvab harude nimekirja ja küsib valikut
+bash setup-web-eid-java-branch.sh
+
+# Konkreetne haru nimetus (asenda release-1.2.3 oma haru-nimega)
+bash setup-web-eid-java-branch.sh --branch release-1.2.3
+```
+
+Skript:
+
+1. Paigaldab portatiivse JDK 17 (Adoptium GA) ja ngrok-i `~/tools/` alla
+2. Küsib ngrok auth tokenit (eraldi terminaliaknas — vt
+   <https://dashboard.ngrok.com/get-started/your-authtoken>)
+3. Tõmbab `web-eid-authtoken-validation-java` repo
+4. Laseb valida haru (interaktiivne nimekiri või `--branch` argument)
+5. **Verifitseerib haru ja commit-i:** soovitud vs aktiivne haru kontroll,
+   kohalik vs `origin/<HARU>` commit-võrdlus, pealkiri + kuupäev — auditeeritav
+6. Ehitab root library `mvn install`-iga lokaalsesse Maven cache'i
+   (`mvn install` jooksutab automaatselt ka **ühiktestid** enne installimist)
+7. Ehitab example-app-i Spring Boot fat JAR-iks (`mvn package`)
+8. Käivitab ngrok-tunneli + Spring Boot rakenduse, uuendab
+   `application-dev.yaml` `local-origin`-i ngrok URL-iks
+9. Avab live-logi eraldi terminaliaknas (rakenduse päringud reaalajas)
+
+**Eraldi terminaliaknad mis avanevad:**
+
+- Sammus 2 — ngrok auth tokeni dialoog
+- Sammus 5/6 vahel — ehituse live-logi (Maven väljund reaalajas; sulged X-iga
+  kui valmis)
+- Pärast sammu 8 — rakenduse live-logi (Spring Boot päringud, OCSP/TSA tegevus)
+
+**Versiooni-detektsioon:** skript nopib build-logist installitud library
+versiooni (`authtoken-validation-X.Y.Z.jar`) ja kuvab selle kokkuvõttes —
+nii saad kinnitada, et lokaalsesse Maven cache'i installiti just see versioon
+mida haru `pom.xml`-is on. Kui logist ei õnnestu, fallback loeb otse
+`pom.xml`-i `<version>` välja.
+
+Kasulik release-haru või konkreetse PR-i testimiseks enne main-i ühendamist.
 
 </details>
 
