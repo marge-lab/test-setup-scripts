@@ -428,8 +428,12 @@ def step_ensure_ca_certs() -> None:
     cert_dev.mkdir(parents=True, exist_ok=True)
     cert_prod.mkdir(parents=True, exist_ok=True)
 
-    # Live CA-d (Prod-kausta) — kasutaja paris ID-kaardi sertifikaadi-vanemad
+    # Live CA-d (Prod-kausta) — kasutaja paris ID-kaardi sertifikaadi-vanemad.
+    # Kaks erinevat CA-d katavad kogu ESTEID 2018 seeria + uuemad ESTEID 2025.
+    # ESTEID-SK_2015 lisame, sest moned 2017-2018 valjastatud kaardid olid
+    # signeeritud eelmise polvkonna CA-ga (vahetus ei olnud koheselt totaalne).
     live_cas = [
+        ("ESTEID-SK_2015.cer", "https://www.sk.ee/upload/files/ESTEID-SK_2015.der.crt"),
         ("ESTEID2018.cer", "https://c.sk.ee/esteid2018.der.crt"),
         ("ESTEID2025.cer", "https://crt.eidpki.ee/ESTEID2025.crt"),
     ]
@@ -537,8 +541,14 @@ def step_build():
     step(12, 15, "Ehitamine (dotnet restore + build)")
     build_target = str(SLN) if SLN.is_file() else str(CSPROJ)
     info(f"Build target: {Path(build_target).name}")
+    # NB: --no-incremental sunnib dotnet build-i alati taasehitama. Vajalik kui
+    # step_ensure_ca_certs (samm 8) on hiljuti lisanud uue CA-faili — incremental
+    # build voib vaata, et "lahtekood ei muutunud" ja ei kopeeri uut .cer-i bin
+    # output-i. Tagajarg: app loeb vana CA-listi ja autentimine kukub
+    # CertificateNotTrustedException-iga, hoolimata sellest, et fail on
+    # source-Certificates/Prod/-is olemas.
     run(["dotnet", "restore", build_target])
-    run(["dotnet", "build", build_target, "--configuration", "Debug"])
+    run(["dotnet", "build", build_target, "--configuration", "Debug", "--no-incremental"])
 
 # --- 12. Start ngrok tunnel + update appsettings.json -----------------------
 def step_ngrok_tunnel():
