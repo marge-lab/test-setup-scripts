@@ -429,11 +429,10 @@ def step_ensure_ca_certs() -> None:
     cert_prod.mkdir(parents=True, exist_ok=True)
 
     # Live CA-d (Prod-kausta) — kasutaja paris ID-kaardi sertifikaadi-vanemad.
-    # Kaks erinevat CA-d katavad kogu ESTEID 2018 seeria + uuemad ESTEID 2025.
-    # ESTEID-SK_2015 lisame, sest moned 2017-2018 valjastatud kaardid olid
-    # signeeritud eelmise polvkonna CA-ga (vahetus ei olnud koheselt totaalne).
+    # ESTEID2018 = SK ID Solutions AS-i CA, mis signeeris kaardid kuni
+    # 2025 novembrini (IDEMIA kaardid). ESTEID2025 = uus CA, mida SK kasutab
+    # alates 2025 novembrist (uled minek Zetes-Thales kaartidele).
     live_cas = [
-        ("ESTEID-SK_2015.cer", "https://www.sk.ee/upload/files/ESTEID-SK_2015.der.crt"),
         ("ESTEID2018.cer", "https://c.sk.ee/esteid2018.der.crt"),
         ("ESTEID2025.cer", "https://crt.eidpki.ee/ESTEID2025.crt"),
     ]
