@@ -24,19 +24,43 @@ Repo `main`-harust ehitatud rakendused — sobivad reliisi-testimiseks.
 
 | Skript | Otstarve | Platvorm |
 |---|---|---|
-| [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus | Ubuntu |
+| [`setup-web-eid-php.sh`](setup-web-eid-php.sh) | Web eID PHP näiterakendus (lokaalne) | Ubuntu |
+| [`setup-web-eid-php-remote.sh`](setup-web-eid-php-remote.sh) | Web eID PHP näiterakendus + ngrok (avalik HTTPS) | Ubuntu |
 | [`setup-web-eid-java.sh`](setup-web-eid-java.sh) | Web eID Java näiterakendus (ngrok-iga) | Ubuntu, macOS |
 | [`setup-web-eid-dotnet.sh`](setup-web-eid-dotnet.sh) | Web eID .NET näiterakendus (lokaalne) | Ubuntu |
 | [`setup-web-eid-dotnet-remote.sh`](setup-web-eid-dotnet-remote.sh) | Web eID .NET näiterakendus + ngrok (avalik HTTPS) | Ubuntu |
 
 <details>
-<summary><b>PHP — Ubuntu</b></summary>
+<summary><b>PHP — Ubuntu (lokaalne, HTTPS localhost)</b></summary>
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php.sh
 chmod +x setup-web-eid-php.sh
 bash setup-web-eid-php.sh
 ```
+
+</details>
+
+<details>
+<summary><b>PHP — Ubuntu (remote, ngrok-tunneliga)</b></summary>
+
+Sama PHP näiterakendus, aga avalikult internetist kättesaadav ngrok-iga
+— sobib näiteks PR-i jagamiseks arendajaga kaugteel või mobiilseadmest
+testimiseks.
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-php-remote.sh
+chmod +x setup-web-eid-php-remote.sh
+bash setup-web-eid-php-remote.sh
+```
+
+Erinevus lokaalsest skriptist:
+
+- Paigaldab lisaks **ngrok**-i ja küsib auth tokenit
+  (<https://dashboard.ngrok.com/get-started/your-authtoken>)
+- ngrok tunneldab Apache HTTPS-i (port 443) avalikku URL-i
+- `example/src/app.conf.php` `origin_url` uuendatakse iga jooksu ajal
+  ngrok URL-iks (Web eID library nõuab vastavust)
 
 </details>
 
