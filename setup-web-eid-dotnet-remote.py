@@ -23,6 +23,7 @@ tarfile). EI vaja `pip install` kasku.
 """
 
 import argparse
+import getpass
 import json
 import os
 import platform
@@ -326,8 +327,9 @@ def step_ngrok_auth():
     info("     Sisu: AINULT token, ilma ’ngrok config add-authtoken’ kasuta.")
     info("     Pärast esimest jooksu kustuta fail käsitsi (token on juba ngrok.yml-is).")
     info("")
-    info("  3. KÄSITSI siia konsooli (lihtsaim, kuid token nähtav scrollback-is)")
-    info("     Paremklikk = paste cmd-aknas / Ctrl+V Windows Terminal-is.")
+    info("  3. KÄSITSI siia konsooli VARJATUD sisestusega")
+    info("     NB! Paste TÖÖTAB, aga ekraanile MIDAGI EI TULE — see on normaalne.")
+    info("     Paremklikk paste cmd-aknas / Ctrl+V Windows Terminal-is, siis Enter.")
     info("")
 
     # 1. Proovi env-muutujat
@@ -342,12 +344,29 @@ def step_ngrok_auth():
             info(f"Token loetud failist: {token_file}")
             info(f"NB! Kustuta see fail käsitsi kui pole enam vaja (sisaldab tokeni plaintekstis).")
         else:
-            # 3. Käsitsi sisestus (input — paste tootab kindlasti, kuid nähtav)
+            # 3. Käsitsi sisestus — getpass (varjatud).
+            # NB! Windows paste-iga: paremklikk cmd-is VOI Ctrl+V Windows Terminal-is.
+            # Paste tootab, lihtsalt ekraanile midagi ei kuvata (see ON taotluslik).
+            # Kui paste tundub mitte-tootavat → vajuta ikkagi Enter — token on
+            # stdin-puhvris ja saadetakse skripti. Kui sisestus on tyhi → fallback
+            # nahtav input() (paste-i debugimiseks).
             print()
             try:
-                token = input(f"  {Y}? Kleebi ngrok auth-token (jääb terminali kasutusajaks nähtavaks):{N} ").strip()
+                token = getpass.getpass(
+                    f"  {Y}? Kleebi token (varjatud — paste tootab kuid ekraanile midagi ei kuvata, siis Enter):{N} "
+                ).strip()
             except (EOFError, KeyboardInterrupt):
                 fail("Token sisestus katkestatud.")
+
+            # Kui getpass tagastas tyhja (paste reaalselt ei tootanud, voi kasutaja
+            # vajutas kogemata Enter), paku nahtavat fallback-i.
+            if not token:
+                info("Varjatud sisestus oli tyhi. Proovime nahtava sisestusega:")
+                info("(NB! Token jaab terminali scrollback-i — kustuta hiljem cmd Clear-iga.)")
+                try:
+                    token = input(f"  {Y}? Kleebi token (NAHTAV):{N} ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    fail("Token sisestus katkestatud.")
 
     if not token or len(token) < 20:
         fail("Token tyhi voi liiga lyhike. Loobun.")
