@@ -1,7 +1,7 @@
 ## test-setup-scripts
 
-Paigaldus- ja seadistus-skriptid Linux VM-i kiireks ülesseadmiseks
-testimistöö jaoks.
+Paigaldus- ja seadistus-skriptid testimismasina (Linux / macOS / Windows)
+kiireks ülesseadmiseks testimistöö jaoks.
 
 Skriptid jagunevad kahte rühma:
 
@@ -13,7 +13,7 @@ Skriptid jagunevad kahte rühma:
 ## Web eID näidisrakendused
 
 Skriptid kloonivad [web-eid](https://github.com/web-eid)
-organisatsioonist vastava `web-eid-authtoken-validation-*` repo,
+GitHub-projektist vastava `web-eid-authtoken-validation-*` repo,
 ehitavad näiterakenduse ja käivitavad. Kõik avavad lõpus eraldi
 terminaliakna **live-logiga** (rakenduse päringud, sertide laadimine,
 OCSP/TSA tegevused reaalajas).
