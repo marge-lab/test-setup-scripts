@@ -227,7 +227,7 @@ python3 setup-web-eid-dotnet.py --profile prod
      jaoks (sinu enda masin), pole turvaohtu — vajuta julgelt **Yes**.
 8. **Dev-profile:** loob test-TSL flag-faili (`%APPDATA%\digidocpp\tsl\EE_T.xml` Windowsil, `~/.digidocpp/tsl/EE_T.xml` macOS-il). **Prod-profile:** EE_T.xml-i ei loo (live-kaardid kasutavad live TSL-i).
 9. Ehitab — `dotnet restore` + `dotnet build`
-10. Kopeerib **pärast build-i** ülejäänud libdigidocpp failid (DLL-id + `schema/` kaust) → `bin\Debug\net8.0\` (vastab ametliku juhendi sammule `xcopy /s` ja "Also copy folder schema"). **Prod-profile:** lisaks loob `bin\Debug\net8.0\digidocpp.conf` `ts.url`-iga (Variant 2 ametlikust juhendist — `https://eid-dd.ria.ee/ts` RIA test-TSA, ilma SK paid-kontaktita). Käivitab `dotnet run --no-build` koos `ASPNETCORE_ENVIRONMENT=Development` (dev) või `Production` (prod) ja avab brauseri.
+10. Kopeerib **pärast build-i** ülejäänud libdigidocpp failid (DLL-id + `schema/` kaust) → `bin\Debug\net8.0\` (vastab ametliku juhendi sammule `xcopy /s` ja "Also copy folder schema"). **Prod-profile:** lisaks loob `bin\Debug\net8.0\digidocpp.conf` `ts.url`-iga (Variant 2 ametlikust juhendist — Eesti eID test-TSA URL, mis ei vaja SK-tasulist kontot). Käivitab `dotnet run --no-build` koos `ASPNETCORE_ENVIRONMENT=Development` (dev) või `Production` (prod) ja avab brauseri.
 
 **Profiilide erinevus:**
 
@@ -237,10 +237,10 @@ python3 setup-web-eid-dotnet.py --profile prod
 | ID-kaardid | Test-kaardid (JÕEORG jms) | Live-kaardid |
 | Trusted CA-d | `Certificates/Dev/*.cer` (test) | `Certificates/Prod/*.cer` (live) |
 | TSL | Test-TSL (`EE_T.xml` flag) | Live-TSL |
-| TSA URL | `http://demo.sk.ee/tsa` (test) | `https://eid-dd.ria.ee/ts` (RIA test, ilma paid-kontaktita) |
+| TSA URL | `http://demo.sk.ee/tsa` (test) | Eesti eID test-TSA URL (tasuta, ilma SK-lepinguta) |
 | Source-patch DigiDocConfiguration.cs | ei | ei (kasutab Variant 2 — `digidocpp.conf`) |
 
-**Hoiatus prod-profile-i kohta:** `https://eid-dd.ria.ee/ts` on RIA **test-TSA** — sobib testimiseks, aga päris-produktsiooni jaoks vaja SK-tasulist TSA-kontot ja URL-i tuleb vahetada `https://eid.sk.ee/tsa`-le (või muule lepingu-kohasele).
+**Hoiatus prod-profile-i kohta:** vaikimisi kasutatav TSA URL on **test-TSA** — sobib testimiseks, aga päris-produktsiooni jaoks vaja SK-tasulist TSA-kontot ja URL tuleb vahetada lepingu-kohasele (nt `https://eid.sk.ee/tsa`). Konkreetne URL ja seadistus on dokumenteeritud [libdigidocpp wiki-s](https://github.com/open-eid/libdigidocpp/wiki).
 
 </details>
 

@@ -52,7 +52,7 @@ _arg_parser = argparse.ArgumentParser(
         "  dev   = ASPNETCORE_ENVIRONMENT=Development (test ID-kaardid, vaikimisi)\n"
         "  prod  = ASPNETCORE_ENVIRONMENT=Production  (live ID-kaardid;\n"
         "          loob bin/Debug/net8.0/digidocpp.conf ts.url-iga\n"
-        "          https://eid-dd.ria.ee/ts (RIA test-TSA — paid kontaktita))"
+        "          https://eid-dd.ria.ee/ts (Eesti eID test-TSA — paid kontaktita))"
     ),
 )
 _arg_parser.add_argument(
@@ -520,7 +520,7 @@ def step_copy_native_libs_and_run() -> None:
 
     # Prod-profile: loo digidocpp.conf ts.url ulekirjutamisega
     # Variant 2 ametlikust libdigidocpp juhendist — vahistab source-patche.
-    # ts.url = https://eid-dd.ria.ee/ts on RIA test-TSA (sobib testimiseks
+    # ts.url = https://eid-dd.ria.ee/ts on Eesti eID test-TSA (sobib testimiseks
     # ilma paid SK-kontaktita). Pidev prod-keskkonna jaoks vaheta SK live TSA-le.
     if PROFILE == "prod":
         conf_path = bin_dir / "digidocpp.conf"
@@ -532,7 +532,7 @@ def step_copy_native_libs_and_run() -> None:
         )
         conf_path.write_text(conf_content, encoding="utf-8")
         info(f"Prod-profile: loodud {conf_path}")
-        info("  ts.url = https://eid-dd.ria.ee/ts (RIA test-TSA)")
+        info("  ts.url = https://eid-dd.ria.ee/ts (Eesti eID test-TSA)")
 
     # Maara ASPNETCORE_ENVIRONMENT + ASPNETCORE_URLS vastavalt profiilile.
     # NB: vajame `--no-launch-profile` lipu, sest example-app-i
