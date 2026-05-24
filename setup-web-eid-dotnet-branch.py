@@ -721,8 +721,6 @@ def step_copy_native_libs_and_run() -> None:
     print()
     print(f"  {Y}Brauser avaneb automaatselt 8 sek parast app-i kaivitust.{N}")
     print(f"  {Y}Peatamiseks: Ctrl+C selles aknas.{N}")
-    print(f"  {Y}Eraldi log-aken (vabatahtlik, teises cmd-aknas):{N}")
-    print(f"  {Y}  powershell -NoProfile -Command \"Get-Content '{log_file}' -Wait -Tail 50\"{N}")
     print()
 
     import threading
