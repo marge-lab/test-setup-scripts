@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Lülitab GNOME ekraanisäästja, lukustuse ja idle-suspend'i välja.
-# Mõeldud Linux VM-idele (Ubuntu/GNOME), mis muidu hanguvad jõude olles.
-# Kasutus:  ./disable-screensaver.sh
+# Hoiab masina ärkvel: lülitab GNOME ekraanisäästja, lukustuse ja
+# idle-suspend'i välja. Mõeldud Linux VM-idele (Ubuntu/GNOME), mis muidu
+# hanguvad jõude olles.
+# Kasutus:  ./keep-awake.sh
 
 set -u
 

@@ -6,7 +6,7 @@ kiireks ülesseadmiseks testimistöö jaoks.
 Skriptid jagunevad kahte rühma:
 
 1. **Web eID näidisrakendused** — PHP, Java, .NET (main-haru ja harude testimine)
-2. **Muud testimisskriptid** — VMware shared folder, GNOME ekraanisäästja keelamine
+2. **Muud testimisskriptid** — VMware shared folder, masina ärkvel hoidmine (keep-awake)
 
 ---
 
@@ -726,7 +726,8 @@ Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 | Skript | Otstarve | Platvorm |
 |---|---|---|
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
-| [`disable-screensaver.sh`](disable-screensaver.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
+| [`keep-awake.sh`](keep-awake.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
+| [`keep-awake.cmd`](keep-awake.cmd) | Keelab Windowsi ekraanisäästja + sleep + ketta spin-down | Windows 10/11 |
 
 <details>
 <summary><b>VMware Shared Folder</b></summary>
@@ -759,15 +760,15 @@ bash setup-vmware-shared-folder.sh SharedVM        # määra nimi käsitsi
 </details>
 
 <details>
-<summary><b>Ekraanisäästja keelamine — Ubuntu/GNOME</b></summary>
+<summary><b>Keep awake — Ubuntu/GNOME (ekraanisäästja + idle-suspend välja)</b></summary>
 
 Linux VM-id (eriti VMware-s) kipuvad ekraanisäästja tõttu hanguma.
 Skript keelab kõik seotud GNOME seaded korraga ja kontrollib tulemused.
 
 ```bash
-wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/disable-screensaver.sh
-chmod +x disable-screensaver.sh
-bash disable-screensaver.sh
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/keep-awake.sh
+chmod +x keep-awake.sh
+bash keep-awake.sh
 ```
 
 Seadistab:
@@ -779,5 +780,39 @@ Seadistab:
 - `org.gnome.desktop.screensaver ubuntu-lock-on-suspend` → false (Ubuntu-spetsiifiline)
 
 Skript ei vaja sudo-d — seadistab ainult kasutaja dconf-i.
+
+</details>
+
+<details>
+<summary><b>Keep awake — Windows 10/11 (ekraan + sleep + ketta spin-down välja)</b></summary>
+
+Windowsi test-masinad/VM-id, mis peavad olema pikka aega aktiivsed
+ilma kasutaja sekkumiseta. Skript sätib `powercfg`-iga **0 = mitte kunagi**
+nii ekraanile, süsteemile, kettale kui auto-hibernate'ile.
+
+```cmd
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/keep-awake.cmd
+.\keep-awake.cmd
+```
+
+Topeltkliki .cmd-l võib otse — pärast jooksmist kuvatakse kontroll-tabel
+ja `pause` ootab Enter-it.
+
+Seadistab (`powercfg /change`):
+- `monitor-timeout-ac` / `-dc` → 0 (ekraan ei lülitu välja)
+- `standby-timeout-ac` / `-dc` → 0 (süsteem ei lähe sleep-i)
+- `disk-timeout-ac` / `-dc` → 0 (ketas ei lähe spin-down-i)
+- `hibernate-timeout-ac` / `-dc` → 0 (auto-hibernate ei aktiveeru)
+
+JA registry (HKCU, ei vaja admin-õigusi):
+- `Control Panel\Desktop\ScreenSaveActive` → 0
+- `Control Panel\Desktop\ScreenSaverIsSecure` → 0
+- `Control Panel\Desktop\ScreenSaveTimeOut` → 0
+
+**Märkused:**
+- Hiberneerimise **täielikuks** välja-lülitamiseks (kustutab `hiberfil.sys`,
+  vabastab ketast) ava `cmd "Run as administrator"` ja käivita käsitsi:
+  `powercfg /hibernate off`
+- Vaikeseadete taastamiseks: `Settings → System → Power & battery → Screen and sleep`
 
 </details>
