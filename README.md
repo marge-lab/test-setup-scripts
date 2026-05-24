@@ -726,8 +726,8 @@ Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 | Skript | Otstarve | Platvorm |
 |---|---|---|
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
-| [`keep-awake.sh`](keep-awake.sh) | Keelab GNOME ekraanisäästja + idle-suspend | Ubuntu/GNOME |
-| [`keep-awake.cmd`](keep-awake.cmd) | Keelab Windowsi ekraanisäästja + sleep + ketta spin-down | Windows 10/11 |
+| [`keep-awake.sh`](keep-awake.sh) | Keelab idle-actions (ekraan / sleep / ketas / lukustus) | Ubuntu/GNOME, macOS |
+| [`keep-awake.cmd`](keep-awake.cmd) | Sama Windowsi versioon | Windows 10/11 |
 
 <details>
 <summary><b>VMware Shared Folder</b></summary>
@@ -760,10 +760,11 @@ bash setup-vmware-shared-folder.sh SharedVM        # määra nimi käsitsi
 </details>
 
 <details>
-<summary><b>Keep awake — Ubuntu/GNOME (ekraanisäästja + idle-suspend välja)</b></summary>
+<summary><b>Keep awake — Ubuntu/GNOME ja macOS</b></summary>
 
-Linux VM-id (eriti VMware-s) kipuvad ekraanisäästja tõttu hanguma.
-Skript keelab kõik seotud GNOME seaded korraga ja kontrollib tulemused.
+Test-VM-id ja test-masinad kipuvad ekraanisäästja / sleep'i tõttu hanguma.
+Skript keelab kõik seotud seaded korraga ja kontrollib tulemused.
+Platvorm tuvastatakse automaatselt `uname -s`-iga.
 
 ```bash
 wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/keep-awake.sh
@@ -771,7 +772,9 @@ chmod +x keep-awake.sh
 bash keep-awake.sh
 ```
 
-Seadistab:
+(macOS: `curl -O` `wget`-i asemel.)
+
+**Linux/GNOME (Ubuntu, Fedora)** — `gsettings`, ei vaja sudo-d:
 - `org.gnome.desktop.screensaver lock-enabled` → false
 - `org.gnome.desktop.screensaver idle-activation-enabled` → false
 - `org.gnome.desktop.session idle-delay` → 0
@@ -779,7 +782,17 @@ Seadistab:
 - `org.gnome.settings-daemon.plugins.power idle-dim` → false
 - `org.gnome.desktop.screensaver ubuntu-lock-on-suspend` → false (Ubuntu-spetsiifiline)
 
-Skript ei vaja sudo-d — seadistab ainult kasutaja dconf-i.
+**macOS** — `pmset` (vajab sudo, küsib parooli) + `defaults` (ei vaja):
+- `pmset -a displaysleep` → 0 (ekraan ei lülitu välja)
+- `pmset -a sleep` → 0 (süsteem ei lähe sleep-i)
+- `pmset -a disksleep` → 0 (ketas ei lähe spin-down-i)
+- `com.apple.screensaver idleTime` → 0 (ekraanisäästja off)
+- `com.apple.screensaver askForPassword` → 0
+
+Ajutiseks ärkvel-hoidmiseks macOS-il (ilma sudo-ta, taustaprotsessiga):
+```bash
+caffeinate -dimsu
+```
 
 </details>
 
