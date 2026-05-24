@@ -287,7 +287,16 @@ python3 setup-web-eid-dotnet-remote.py --profile prod   # prod
 
 **Eeldused:** ngrok auth token (tasuta konto): <https://dashboard.ngrok.com/get-started/your-authtoken>. Skript pakub **kolme viisi tokeni sisestamiseks** (skript proovib järjekorras):
 
-1. **`NGROK_AUTH_TOKEN` env-muutuja:**
+1. **Tokeni-fail** (SOOVITUSLIK — paste-i probleeme pole, töötab cmd-aknast väljaspool tehtud failiga):
+   - **Enne skripti käivitamist** salvesta token faili:
+     ```cmd
+     notepad %USERPROFILE%\ngrok-auth-token.txt
+     ```
+   - Pane sinna AINULT token (üks rida, mitte `ngrok config add-authtoken ...` käsku ega jutumärke), salvesta, sulge.
+   - Käivita skript — leiab faili automaatselt sammus 5.
+   - **Pärast esimest jooksu kustuta fail käsitsi** (token elab edaspidi `ngrok.yml`-is): `del %USERPROFILE%\ngrok-auth-token.txt`
+
+2. **`NGROK_AUTH_TOKEN` env-muutuja** (kehtib AINULT selles cmd-aknas, kuni see suletakse):
    ```cmd
    :: cmd
    set NGROK_AUTH_TOKEN=2xxxxxxxxxxxxxxxxxxxx
@@ -298,17 +307,10 @@ python3 setup-web-eid-dotnet-remote.py --profile prod   # prod
    $env:NGROK_AUTH_TOKEN='2xxxxxxxxxxxxxxxxxxxx'
    .\setup-web-eid-dotnet-remote.cmd
    ```
-   Token nähtav cmd-seansis, aga ei salvestu scrollback-i.
 
-2. **Tokeni-fail** (ohutuim, paste-i probleeme pole):
-   - Salvesta token (ainult token, mitte tervet `ngrok config add-authtoken ...` käsku) faili:
-     `C:\Users\<sina>\ngrok-auth-token.txt`
-   - Skript loeb selle automaatselt
-   - **Pärast esimest jooksu kustuta fail käsitsi** (token elab edaspidi ngrok.yml-is)
-
-3. **Käsitsi siia konsooli** (lihtsaim, kuid token jääb scrollback-i):
-   - Skript küsib `input()`-iga
-   - Paremklikk paste cmd-aknas, Ctrl+V Windows Terminal-is
+3. **Käsitsi paste konsooli** (kõige ebausaldusväärsem — Windows cmd-i paste-i käitumine on vastuoluline):
+   - Skript küsib paste-iga
+   - Paremklikk cmd-aknas / Ctrl+V Windows Terminal-is, siis Enter
 
 **Kus token tegelikult salvestub:** `C:\Users\<sina>\AppData\Local\ngrok\ngrok.yml`. Skript ise tokenit kuhugi mujale ei salvesta. Eemaldamiseks: kustuta see fail.
 
@@ -495,6 +497,20 @@ python3 setup-web-eid-dotnet-branch.py --branch WE2-123
 Sama loogika mis Ubuntu remote-versioonis (ngrok-tunnel + auth-token),
 aga Pythonis.
 
+> **⚠ Enne käivitamist:** valmista ette **ngrok auth token** —
+> kõige usaldusväärsem viis on **failimeetod** (paste cmd-aknas on ebausaldusväärne).
+>
+> ```cmd
+> notepad %USERPROFILE%\ngrok-auth-token.txt
+> ```
+>
+> Pane sinna AINULT token (üks rida, ilma `ngrok config add-authtoken` käsuta),
+> salvesta, sulge. Skript leiab faili automaatselt sammus 5.
+>
+> Tokeni saad: <https://dashboard.ngrok.com/get-started/your-authtoken> (tasuta konto).
+> Pärast esimest jooksu kustuta fail käsitsi (token elab edaspidi `ngrok.yml`-is):
+> `del %USERPROFILE%\ngrok-auth-token.txt`
+
 **Windows:**
 
 ```cmd
@@ -514,6 +530,8 @@ curl -o setup-web-eid-dotnet-branch-remote.py  https://raw.githubusercontent.com
 curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch-remote.py
 python3 setup-web-eid-dotnet-branch-remote.py --branch WE2-123
 ```
+
+(macOS-il pane fail `~/ngrok-auth-token.txt`-i.)
 
 Profile-i vahetus (`dev` ↔ `prod`) on ohutu — skript taastab `Startup.cs` ja
 `DigiDocConfiguration.cs` igal käivitusel `git HEAD`-ist ja siis rakendab
