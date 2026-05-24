@@ -467,13 +467,13 @@ JA interaktiivset menüüd, `--profile {dev,prod}`.
 curl -o setup-web-eid-dotnet-branch.cmd https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.cmd
 curl -o setup-web-eid-dotnet-branch.py  https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.py
 
-REM Interaktiivne: kuvab harude nimekirja
+:: Interaktiivne: kuvab harude nimekirja
 .\setup-web-eid-dotnet-branch.cmd
 
-REM Konkreetne haru, test-kaartidega (vaikimisi)
+:: Konkreetne haru, test-kaartidega (vaikimisi)
 .\setup-web-eid-dotnet-branch.cmd --branch WE2-123
 
-REM Live-kaardiga (digidocpp.conf ts.url-iga)
+:: Live-kaardiga (digidocpp.conf ts.url-iga)
 .\setup-web-eid-dotnet-branch.cmd --branch WE2-123 --profile prod
 ```
 
@@ -501,10 +501,10 @@ aga Pythonis.
 curl -o setup-web-eid-dotnet-branch-remote.cmd https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch-remote.cmd
 curl -o setup-web-eid-dotnet-branch-remote.py  https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch-remote.py
 
-REM Interaktiivne haru-valik + test-kaardid
+:: Interaktiivne haru-valik + test-kaardid
 .\setup-web-eid-dotnet-branch-remote.cmd
 
-REM Konkreetne haru, live-kaardiga
+:: Konkreetne haru, live-kaardiga
 .\setup-web-eid-dotnet-branch-remote.cmd --branch WE2-123 --profile prod
 ```
 
