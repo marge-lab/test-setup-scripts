@@ -540,7 +540,7 @@ ainult valitud profile-i patche.
 </details>
 
 <details>
-<summary><b>.NET branch-skriptide logifaili kasutamine (post-mortem)</b></summary>
+<summary><b>.NET branch-skriptide logifaili kasutamine</b></summary>
 
 `setup-web-eid-dotnet-branch.py` ja `setup-web-eid-dotnet-branch-remote.py`
 kirjutavad rakenduse logi paralleelselt nii konsooli kui ka faili:
