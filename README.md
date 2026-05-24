@@ -389,6 +389,8 @@ seda example-app-i ehitamiseks. Iga keele jaoks veidi erinev pakkimine:
 | [`setup-web-eid-java-branch.sh`](setup-web-eid-java-branch.sh) | Web eID Java näide suvalisest harust + ngrok | Ubuntu, macOS |
 | [`setup-web-eid-dotnet-branch.sh`](setup-web-eid-dotnet-branch.sh) | Web eID .NET näide suvalisest harust (lokaalne) | Ubuntu |
 | [`setup-web-eid-dotnet-branch-remote.sh`](setup-web-eid-dotnet-branch-remote.sh) | Web eID .NET näide suvalisest harust + ngrok | Ubuntu |
+| [`setup-web-eid-dotnet-branch.py`](setup-web-eid-dotnet-branch.py) (+ [`.cmd`](setup-web-eid-dotnet-branch.cmd)) | Web eID .NET näide suvalisest harust (Python-skript; lokaalne) | Windows, macOS |
+| [`setup-web-eid-dotnet-branch-remote.py`](setup-web-eid-dotnet-branch-remote.py) (+ [`.cmd`](setup-web-eid-dotnet-branch-remote.cmd)) | Web eID .NET näide suvalisest harust (Python-skript; + ngrok) | Windows, macOS |
 | [`setup-web-eid-php-branch.sh`](setup-web-eid-php-branch.sh) | Web eID PHP näide suvalisest harust (lokaalne) | Ubuntu |
 | [`setup-web-eid-php-branch-remote.sh`](setup-web-eid-php-branch-remote.sh) | Web eID PHP näide suvalisest harust + ngrok | Ubuntu |
 
@@ -450,6 +452,72 @@ Erinevus lokaalsest haru-skriptist (sama loogika nagu
   - `DigiDocConfiguration.cs`: laiendab `if`-tingimust `WEBEID_USE_TEST_TSL`
     env-muutujaga — signimise jaoks
 - `appsettings.json` `OriginUrl` uuendatakse iga jooksu ajal ngrok URL-iks
+
+</details>
+
+<details>
+<summary><b>.NET haru-testimine — Windows / macOS (Python-skript, lokaalne)</b></summary>
+
+Sama loogika mis Ubuntu-versioonis, aga Pythonis. Toetab `--branch` argumenti
+JA interaktiivset menüüd, `--profile {dev,prod}`.
+
+**Windows (cmd-aknas):**
+
+```cmd
+curl -o setup-web-eid-dotnet-branch.cmd https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.cmd
+curl -o setup-web-eid-dotnet-branch.py  https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.py
+
+REM Interaktiivne: kuvab harude nimekirja
+.\setup-web-eid-dotnet-branch.cmd
+
+REM Konkreetne haru, test-kaartidega (vaikimisi)
+.\setup-web-eid-dotnet-branch.cmd --branch WE2-123
+
+REM Live-kaardiga (digidocpp.conf ts.url-iga)
+.\setup-web-eid-dotnet-branch.cmd --branch WE2-123 --profile prod
+```
+
+**macOS (terminalis):**
+
+```bash
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch.py
+python3 setup-web-eid-dotnet-branch.py --branch WE2-123
+```
+
+`.cmd` kontrollib alguses, et Python on paigaldatud ja kui pole, pakub
+`winget install Python.Python.3.12`-i.
+
+</details>
+
+<details>
+<summary><b>.NET haru-testimine — Windows / macOS (Python-skript, remote ngrok)</b></summary>
+
+Sama loogika mis Ubuntu remote-versioonis (ngrok-tunnel + auth-token),
+aga Pythonis.
+
+**Windows:**
+
+```cmd
+curl -o setup-web-eid-dotnet-branch-remote.cmd https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch-remote.cmd
+curl -o setup-web-eid-dotnet-branch-remote.py  https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch-remote.py
+
+REM Interaktiivne haru-valik + test-kaardid
+.\setup-web-eid-dotnet-branch-remote.cmd
+
+REM Konkreetne haru, live-kaardiga
+.\setup-web-eid-dotnet-branch-remote.cmd --branch WE2-123 --profile prod
+```
+
+**macOS:**
+
+```bash
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/setup-web-eid-dotnet-branch-remote.py
+python3 setup-web-eid-dotnet-branch-remote.py --branch WE2-123
+```
+
+Profile-i vahetus (`dev` ↔ `prod`) on ohutu — skript taastab `Startup.cs` ja
+`DigiDocConfiguration.cs` igal käivitusel `git HEAD`-ist ja siis rakendab
+ainult valitud profile-i patche.
 
 </details>
 
