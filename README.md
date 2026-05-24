@@ -540,6 +540,59 @@ ainult valitud profile-i patche.
 </details>
 
 <details>
+<summary><b>.NET branch-skriptide logifaili kasutamine (post-mortem)</b></summary>
+
+`setup-web-eid-dotnet-branch.py` ja `setup-web-eid-dotnet-branch-remote.py`
+kirjutavad rakenduse logi paralleelselt nii konsooli kui ka faili:
+
+| Platvorm | Faili tee |
+|---|---|
+| Windows | `C:\Users\<sina>\tools\dotnet-app.log` |
+| macOS | `~/tools/dotnet-app.log` |
+
+**NB!** Iga uus käivitus **kirjutab faili üle**. Kui tahad eelmist alles
+hoida, kopeeri see enne uut käivitust kuhugi mujale.
+
+**Tüüpilised kasutused:**
+
+1. **Vaata logi terve sisu Notepadis (kõige lihtsam):**
+   ```cmd
+   notepad %USERPROFILE%\tools\dotnet-app.log
+   ```
+
+2. **Viimased 50 rida** (nt pärast Ctrl+C-d kui konsooli scrollback liiga lühike):
+   ```cmd
+   powershell -NoProfile -Command "Get-Content '%USERPROFILE%\tools\dotnet-app.log' -Tail 50"
+   ```
+
+3. **Otsi viga / sõnumeid** (nt CertificateNotTrustedException, OCSP, signing):
+   ```cmd
+   findstr /i "exception trusted error fail" %USERPROFILE%\tools\dotnet-app.log
+   ```
+   Või PowerShelliga rea-numbritega:
+   ```powershell
+   Select-String -Path "$env:USERPROFILE\tools\dotnet-app.log" -Pattern 'Exception|fail|error'
+   ```
+
+4. **Saatmine arendajale** (Jira/Slack/email manus):
+   - Otse fail manusena ↑ asukohast
+   - Või sisu clipboardi: `clip < %USERPROFILE%\tools\dotnet-app.log` (sobib lühikese logi puhul)
+
+5. **Säilita eelmine logi enne uut käivitust:**
+   ```cmd
+   copy %USERPROFILE%\tools\dotnet-app.log %USERPROFILE%\Desktop\dotnet-app-2026-05-24.log
+   ```
+
+**macOS-il** asenda `%USERPROFILE%\tools\dotnet-app.log` → `~/tools/dotnet-app.log`,
+kasuta `cat / less / tail / grep`-i nagu tavaliselt.
+
+**Miks log-fail on?** Kui tester avastab probleemi tunde pärast jooksu lõppu,
+konsooli scrollback võib olla kadunud. Log-fail on pidev kirje sellest, mida
+rakendus iga päringu jooksul kuvas — kasulik bugi-raporti-le tõenduseks.
+
+</details>
+
+<details>
 <summary><b>PHP haru-testimine — Ubuntu (lokaalne)</b></summary>
 
 ```bash
