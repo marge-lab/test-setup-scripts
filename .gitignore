@@ -1,0 +1,6 @@
+# Local-only scripts (private test variants, not for public consumption)
+_private/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
