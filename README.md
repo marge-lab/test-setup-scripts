@@ -10,6 +10,50 @@ Skriptid jagunevad kahte rühma:
 
 ---
 
+> ## 🔖 Enne alustamist — ngrok auth token (Windows / macOS Python-skriptid)
+>
+> Kui kavatsed käivitada **mis tahes `*-remote*` Python-skripti** (`setup-web-eid-dotnet-remote.py`, `setup-web-eid-dotnet-branch-remote.py`), **tee enne skripti käivitust see fail valmis**:
+>
+> **Windows (cmd):**
+> ```cmd
+> notepad %USERPROFILE%\ngrok-auth-token.txt
+> ```
+>
+> **macOS / Linux:**
+> ```bash
+> nano ~/ngrok-auth-token.txt
+> ```
+>
+> Pane sinna **AINULT token** (üks rida, ilma `ngrok config add-authtoken …` käsuta ega jutumärkideta), salvesta, sulge. Skript leiab faili automaatselt.
+>
+> Tokeni saad tasuta kontoga: <https://dashboard.ngrok.com/get-started/your-authtoken>
+>
+> **Pärast esimest jooksu kustuta fail käsitsi** (token elab edaspidi `ngrok.yml`-is):
+> `del %USERPROFILE%\ngrok-auth-token.txt` (Windows) või `rm ~/ngrok-auth-token.txt` (macOS).
+>
+> Üksikasjalikud env-muutuja ja paste-i alternatiivid on iga remote-skripti sektsioonis allpool.
+
+---
+
+## Sisukord
+
+**Web eID näidisrakendused** ([üksikasjad](#web-eid-näidisrakendused))
+
+- [Main-haru skriptid](#main-haru-skriptid) — PHP, Java, .NET (lokaalne + remote)
+- [Harude testimise skriptid](#harude-testimise-skriptid) — .NET / PHP / Java haru-skriptid (Ubuntu, Windows, macOS)
+  - [.NET haru-testimine, Windows / macOS, **remote ngrok**](#dotnet-branch-remote-windows-macos) — vt **🔖 Enne alustamist** kasti üleval.
+- [Live-logi aken — sulgemine, taas-avamine, peatamine](#live-logi-aken)
+- [⚠️ VMware Ubuntu VM-il PHP + Java koos (teadaolev konflikt)](#vmware-php-java-konflikt)
+
+**Muud testimisskriptid** ([üksikasjad](#muud-testimisskriptid))
+
+- VMware Shared Folder
+- Keep awake — Ubuntu/GNOME, macOS, Windows 10/11
+
+> Märkus: alamskriptid on `<details>` plokkides — kliki noolt nime ees, et avada.
+
+---
+
 ## Web eID näidisrakendused
 
 Skriptid kloonivad [web-eid](https://github.com/web-eid)
@@ -491,6 +535,7 @@ python3 setup-web-eid-dotnet-branch.py --branch WE2-123
 
 </details>
 
+<a id="dotnet-branch-remote-windows-macos"></a>
 <details>
 <summary><b>.NET haru-testimine — Windows / macOS (Python-skript, remote ngrok)</b></summary>
 
@@ -737,6 +782,7 @@ Kasulik release-haru või konkreetse PR-i testimiseks enne main-i ühendamist.
 
 </details>
 
+<a id="live-logi-aken"></a>
 <details>
 <summary><b>Live-logi aken — sulgemine, taas-avamine, peatamine</b></summary>
 
@@ -771,6 +817,7 @@ seda peatatakse: `sudo systemctl stop apache2`.
 
 </details>
 
+<a id="vmware-php-java-konflikt"></a>
 <details>
 <summary><b>⚠️ VMware Ubuntu VM-il PHP + Java koos (teadaolev konflikt)</b></summary>
 
