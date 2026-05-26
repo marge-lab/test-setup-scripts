@@ -10,7 +10,7 @@ Skriptid jagunevad kahte rühma:
 
 ---
 
-> ## 🔖 Enne alustamist — ngrok auth token (Windows / macOS Python-skriptid)
+> **🔖 Enne alustamist — ngrok auth token (Windows / macOS Python-skriptid)**
 >
 > Kui kavatsed käivitada **mis tahes `*-remote*` Python-skripti** (`setup-web-eid-dotnet-remote.py`, `setup-web-eid-dotnet-branch-remote.py`), **tee enne skripti käivitust see fail valmis**:
 >
