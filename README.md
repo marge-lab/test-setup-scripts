@@ -10,28 +10,16 @@ Skriptid jagunevad kahte rühma:
 
 ---
 
-> **🔖 Enne alustamist — ngrok auth token (Windows / macOS Python-skriptid)**
->
-> Kui kavatsed käivitada **mis tahes `*-remote*` Python-skripti** (`setup-web-eid-dotnet-remote.py`, `setup-web-eid-dotnet-branch-remote.py`), **tee enne skripti käivitust see fail valmis**:
->
-> **Windows (cmd):**
-> ```cmd
-> notepad %USERPROFILE%\ngrok-auth-token.txt
-> ```
->
-> **macOS / Linux:**
-> ```bash
-> nano ~/ngrok-auth-token.txt
-> ```
->
-> Pane sinna **AINULT token** (üks rida, ilma `ngrok config add-authtoken …` käsuta ega jutumärkideta), salvesta, sulge. Skript leiab faili automaatselt.
->
-> Tokeni saad tasuta kontoga: <https://dashboard.ngrok.com/get-started/your-authtoken>
->
-> **Pärast esimest jooksu kustuta fail käsitsi** (token elab edaspidi `ngrok.yml`-is):
-> `del %USERPROFILE%\ngrok-auth-token.txt` (Windows) või `rm ~/ngrok-auth-token.txt` (macOS).
->
-> Üksikasjalikud env-muutuja ja paste-i alternatiivid on iga remote-skripti sektsioonis allpool.
+#### 🔖 Enne alustamist — ngrok auth token (Windows / macOS Python-skriptid)
+
+**Mis tahes `*-remote*` Python-skripti (`setup-web-eid-dotnet-remote.py`, `setup-web-eid-dotnet-branch-remote.py`) enne käivitust:**
+
+- **Windows:** `notepad %USERPROFILE%\ngrok-auth-token.txt`
+- **macOS / Linux:** `nano ~/ngrok-auth-token.txt`
+- Sisu: ainult token (üks rida, ilma `ngrok config add-authtoken` käsuta ega jutumärkideta), salvesta.
+- Token: <https://dashboard.ngrok.com/get-started/your-authtoken> (tasuta konto)
+- Pärast esimest jooksu kustuta fail käsitsi (token elab edaspidi `ngrok.yml`-is): `del %USERPROFILE%\ngrok-auth-token.txt` / `rm ~/ngrok-auth-token.txt`.
+- Üksikasjalikud env-muutuja ja paste-i alternatiivid on iga remote-skripti sektsioonis allpool.
 
 ---
 
