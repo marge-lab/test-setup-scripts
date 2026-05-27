@@ -6,7 +6,7 @@ kiireks ülesseadmiseks testimistöö jaoks.
 Skriptid jagunevad kahte rühma:
 
 1. **Web eID näidisrakendused** — PHP, Java, .NET (main-haru ja harude testimine)
-2. **Muud testimisskriptid** — VMware shared folder, masina ärkvel hoidmine (keep-awake)
+2. **Muud seadistused ja juhendid** — VMware shared folder, masina ärkvel hoidmine (keep-awake), PuTTY SSH-võti
 
 ---
 
@@ -33,10 +33,11 @@ Skriptid jagunevad kahte rühma:
 - [Live-logi aken — sulgemine, taas-avamine, peatamine](#live-logi-aken)
 - [⚠️ VMware Ubuntu VM-il PHP + Java koos (teadaolev konflikt)](#vmware-php-java-konflikt)
 
-**Muud testimisskriptid** ([üksikasjad](#muud-testimisskriptid))
+**Muud seadistused ja juhendid** ([üksikasjad](#muud-seadistused-ja-juhendid))
 
 - VMware Shared Folder
 - Keep awake — Ubuntu/GNOME, macOS, Windows 10/11
+- PuTTY SSH-võtmega ühendus (Windows)
 
 > Märkus: alamskriptid on `<details>` plokkides — kliki noolt nime ees, et avada.
 
@@ -825,15 +826,16 @@ Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 
 ---
 
-## Muud testimisskriptid
+## Muud seadistused ja juhendid
 
-Üldised Linux VM seadistus-skriptid (ei ole Web eID-spetsiifilised).
+Üldised testimismasina seadistus-skriptid ja juhendid (ei ole Web eID-spetsiifilised).
 
-| Skript | Otstarve | Platvorm |
+| Skript / juhend | Otstarve | Platvorm |
 |---|---|---|
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
 | [`keep-awake.sh`](keep-awake.sh) | Keelab idle-actions (ekraan / sleep / ketas / lukustus) | Ubuntu/GNOME, macOS |
 | [`keep-awake.cmd`](keep-awake.cmd) | Sama Windowsi versioon | Windows 10/11 |
+| [`putty-ssh-voti.md`](putty-ssh-voti.md) | PuTTY SSH-võtme seadistamine (OpenSSH→.ppk, Pageant) | Windows |
 
 <details>
 <summary><b>VMware Shared Folder</b></summary>
@@ -933,5 +935,25 @@ JA registry (HKCU, ei vaja admin-õigusi):
   vabastab ketast) ava `cmd "Run as administrator"` ja käivita käsitsi:
   `powercfg /hibernate off`
 - Vaikeseadete taastamiseks: `Settings → System → Power & battery → Screen and sleep`
+
+</details>
+
+<details>
+<summary><b>PuTTY SSH-võtmega ühendus — Windows</b></summary>
+
+Kuidas panna SSH privaatvõti PuTTY-sse, salvestada sessioon ja ühenduda
+serverisse ilma parooli iga kord sisestamata. Täielik samm-sammuline juhend:
+**[`putty-ssh-voti.md`](putty-ssh-voti.md)**.
+
+Lühikokkuvõte:
+
+1. **Teisenda võti** — PuTTY ei kasuta OpenSSH-võtit (`BEGIN OPENSSH PRIVATE KEY`)
+   otse. PuTTYgen → `Conversions → Import key` → `Save private key` (`.ppk`).
+2. **Pane võti sessiooni** — `Connection → SSH → Auth → Credentials` →
+   "Private key file for authentication" → vali `.ppk`.
+3. **Kasutajanimi** — `Connection → Data` → "Auto-login username".
+4. **Salvesta sessioon** — `Session` lehel host + port 22 → "Saved Sessions" nimi → `Save`.
+5. **Ilma parooli iga kord** — käivita **Pageant**, `Add Key` → `.ppk` → parool üks kord.
+   Auto-start: `Win+R` → `shell:startup` → otsetee `pageant.exe "...\minu-voti.ppk"`.
 
 </details>
