@@ -478,6 +478,9 @@ def step_clone_repo() -> None:
         branch = _select_branch_interactive()
 
     info(f"Valitud haru: {Y}{branch}{N}")
+    # Viska eelmise jooksu .csproj-patch (samm 6) ara, muidu git checkout keeldub
+    # ("Your local changes ... would be overwritten by checkout"). Patch tehakse hiljem uuesti.
+    run(["git", "-C", str(REPO_DIR), "checkout", "--", "."], check=False)
     run(["git", "-C", str(REPO_DIR), "checkout", branch])
     run(["git", "-C", str(REPO_DIR), "pull", "--ff-only"], check=False)
 
