@@ -33,6 +33,10 @@ Skriptid jagunevad kahte rühma:
 - [Live-logi aken — sulgemine, taas-avamine, peatamine](#live-logi-aken)
 - [⚠️ VMware Ubuntu VM-il PHP + Java koos (teadaolev konflikt)](#vmware-php-java-konflikt)
 
+**Web eID rakendus (web-eid-app)** ([üksikasjad](#web-eid-rakendus-web-eid-app))
+
+- [`web-eid-app-build-ubuntu.sh`](#web-eid-rakendus-web-eid-app) — natiivrakenduse ehitus (Docker + lokaalne) ja kaarditest
+
 **Muud seadistused ja juhendid** ([üksikasjad](#muud-seadistused-ja-juhendid))
 
 - VMware Shared Folder
@@ -821,6 +825,72 @@ echo "127.0.0.2  invalid.invalid" | sudo tee -a /etc/hosts
 
 Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 `sudo systemctl start apache2`.
+
+</details>
+
+---
+
+## Web eID rakendus (web-eid-app)
+
+> **NB!** See ei ole sama mis näidisrakendused üleval. Need
+> (`setup-web-eid-*`) ehitavad **authtoken-validation** näiteid (server-pool).
+> See skript ehitab ja testib **[web-eid-app](https://github.com/web-eid/web-eid-app)**-i
+> ennast — natiivset töölaua-rakendust, mis suhtleb kaardilugeja ja
+> ID-kaardiga (`get-signing-certificate` / `authenticate` / `sign`).
+
+Skript verifitseerib ehituse **puhtas Docker-konteineris** (CI paketiloend)
+ja teeb seejärel **kohaliku ehituse**, mida saab päris testkaardiga läbi
+katsetada. Käivitamise alguses laeb GitHub-ist haru-nimekirja ja laseb
+valida testitava haru (nt PR-i haru enne main-i ühendamist).
+
+| Skript | Otstarve | Platvorm |
+|---|---|---|
+| [`web-eid-app-build-ubuntu.sh`](web-eid-app-build-ubuntu.sh) | web-eid-app ehitus (Docker + lokaalne) + kaarditest | Ubuntu 24.04 |
+
+**Eeldused:**
+
+- Ubuntu 24.04 (testitud 24.04.4 LTS, Docker 29.1.3)
+- Sudo-õigus (Dockeri + ehitus-sõltuvuste paigaldamiseks)
+- Kaardiga testimiseks (samm 6): ühendatud kaardilugeja + testkaart
+  (PIN1 autentimiseks, PIN2 allkirjastamiseks)
+
+<details>
+<summary><b>web-eid-app — Ubuntu (Docker-verifitseerimine + kohalik kaarditest)</b></summary>
+
+```bash
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/web-eid-app-build-ubuntu.sh
+chmod +x web-eid-app-build-ubuntu.sh
+bash web-eid-app-build-ubuntu.sh
+```
+
+**Skripti sammud:**
+
+1. **Haru valimine** — laeb GitHub-ist (`web-eid/web-eid-app`) kõik
+   saadaolevad harud, kuvab nummerdatud nimekirja, kasutaja valib numbri.
+   Töötab nii `gh` CLI-ga kui ka `curl`-iga (fallback).
+2. **Docker kontroll** — kontrollib kas Docker on paigaldatud, paigaldab
+   vajadusel (`docker.io`); testib `hello-world`-iga, et Docker töötab.
+3. **Docker-põhine ehituse verifitseerimine** — käivitab puhta
+   `ubuntu:24.04` konteineri, paigaldab **CI paketiloendi**, kloonib repo
+   (`--recurse-submodules`), läheb valitud harusse, käivitab `./build.sh`
+   ja kontrollib, et `.deb` failid tekkisid. Logi: `~/claude-test/logs/docker-build-ci.log`.
+4. **Kohalik sõltuvuste paigaldamine** — paigaldab samad CI paketid otse
+   hostmasinasse (kohaliku ehituse ja kaarditesti jaoks).
+5. **Kohalik ehitus** — kloonib repo (või uuendab olemasoleva), läheb
+   valitud harusse, käivitab `./build.sh` ja kontrollib, et executable
+   tekib: `obj-x86_64-linux-gnu/src/app/web-eid`.
+6. **Kaardiga testimine** — ootab kasutaja kinnitust, et kaardilugeja ja
+   testkaart on ühendatud, seejärel jooksutab kolm käsku natiivrakenduse vastu:
+   - `get-signing-certificate` — loeb kaardilt allkirjastamissertifikaadi (PIN puudub)
+   - `authenticate` — autendib PIN1-ga, kontrollib JWT tokeni ja algoritmi (ES384)
+   - `sign SHA-384` — allkirjastab PIN2-ga, kontrollib allkirja ja algoritmi (ECC SHA-384)
+7. **Kokkuvõte** — kuvab kõigi sammude tulemused, valitud haru nime, logide
+   asukoha ja executable-i tee.
+
+**Mida Docker EI kata:** konteiner ei näe hostmasina kaardilugejat, seega
+rakenduse funktsionaalsust (samm 6) saab testida ainult kohaliku ehitusega
+otse hostmasinas. Docker-samm verifitseerib **ainult ehituse** puhtas
+keskkonnas (et CI paketiloend on piisav ja `.deb` failid tekivad).
 
 </details>
 
