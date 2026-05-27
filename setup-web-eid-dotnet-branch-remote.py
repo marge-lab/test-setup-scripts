@@ -212,7 +212,7 @@ def winget_install(package_id: str, friendly_name: str):
 
 # --- 1. .NET 8 SDK ----------------------------------------------------------
 def step_dotnet_sdk():
-    step(1, 16, ".NET 8 SDK")
+    step(1, 18, ".NET 8 SDK")
     if has_command("dotnet"):
         result = run(["dotnet", "--list-sdks"], capture=True, check=False)
         if result.returncode == 0 and any(l.startswith("8.") for l in result.stdout.splitlines()):
@@ -232,7 +232,7 @@ def step_dotnet_sdk():
 
 # --- 2. Git -----------------------------------------------------------------
 def step_git():
-    step(2, 16, "Git")
+    step(2, 18, "Git")
     if has_command("git"):
         run(["git", "--version"], capture=True)
         info("Git juba paigaldatud")
@@ -248,7 +248,7 @@ def is_libdigidocpp_installed():
     return (LIBDIGIDOCPP_BASE / "include" / "digidocpp_csharp").is_dir()
 
 def step_libdigidocpp():
-    step(3, 16, "libdigidocpp (dev-teek, MITTE DigiDoc4 Client)")
+    step(3, 18, "libdigidocpp (dev-teek, MITTE DigiDoc4 Client)")
     if is_libdigidocpp_installed():
         info(f"libdigidocpp on juba paigaldatud: {LIBDIGIDOCPP_BASE}")
         return
@@ -282,7 +282,7 @@ def step_libdigidocpp():
 
 # --- 4. ngrok download + extract --------------------------------------------
 def step_ngrok_install():
-    step(4, 16, "ngrok install (download + extract)")
+    step(4, 18, "ngrok install (download + extract)")
     if NGROK_BIN.is_file():
         info(f"ngrok juba paigaldatud: {NGROK_BIN}")
         # Lisa TOOLS_DIR PATH-i, et `ngrok` kasud tootaksid jooksvas seansis
@@ -316,7 +316,7 @@ def get_ngrok_config_path() -> Path:
     return HOME / "Library" / "Application Support" / "ngrok" / "ngrok.yml"
 
 def step_ngrok_auth():
-    step(5, 16, "ngrok auth token")
+    step(5, 18, "ngrok auth token")
     config_path = get_ngrok_config_path()
     if config_path.is_file() and "authtoken:" in config_path.read_text(encoding="utf-8", errors="ignore"):
         info(f"ngrok auth-token juba seadistatud: {config_path}")
@@ -438,7 +438,7 @@ def _select_branch_interactive() -> str:
 
 
 def step_clone_repo():
-    step(6, 16, "Repo kloonimine + haru valimine")
+    step(6, 18, "Repo kloonimine + haru valimine")
     PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
     if (REPO_DIR / ".git").is_dir():
         info(f"Repo juba olemas: {REPO_DIR}")
@@ -489,7 +489,7 @@ def step_clone_repo():
 
 # --- 7. Lokaalne NuGet build (WebEid.Security 1.2.0-beta1) ------------------
 def step_local_nuget_build():
-    step(7, 16, f"Lokaalne NuGet build (WebEid.Security {NUGET_VERSION})")
+    step(7, 18, f"Lokaalne NuGet build (WebEid.Security {NUGET_VERSION})")
     sec_proj = REPO_DIR / "src" / "WebEid.Security" / "WebEid.Security.csproj"
     if not sec_proj.is_file():
         fail(f"WebEid.Security.csproj puudub: {sec_proj}")
@@ -528,7 +528,7 @@ def step_local_nuget_build():
 
 # --- 8. Patch .csproj -------------------------------------------------------
 def step_patch_csproj():
-    step(8, 16, f"WebEid.Security viide → PackageReference {NUGET_VERSION}")
+    step(8, 18, f"WebEid.Security viide → PackageReference {NUGET_VERSION}")
     if not CSPROJ.is_file():
         fail(f"{CSPROJ} puudub")
     content = CSPROJ.read_text(encoding="utf-8")
@@ -554,7 +554,7 @@ def step_ensure_ca_certs() -> None:
     `CertificateNotTrustedException`-iga. See samm tagab, et kaks aktuaalset
     versiooni (2018, 2025) on alati olemas mõlemas kataloogis.
     """
-    step(9, 16, "CA-sertifikaatide kontroll (Dev + Prod kaustad)")
+    step(9, 18, "CA-sertifikaatide kontroll (Dev + Prod kaustad)")
     cert_dev = EXAMPLE_DIR / "Certificates" / "Dev"
     cert_prod = EXAMPLE_DIR / "Certificates" / "Prod"
     cert_dev.mkdir(parents=True, exist_ok=True)
@@ -593,7 +593,79 @@ def step_ensure_ca_certs() -> None:
         _ensure(name, url, cert_dev, "  Test")
 
 
-# --- 9. Patch Startup.cs + DigiDocConfiguration.cs (ainult --profile dev) ---
+# --- 10. Certificates/ inspection (uus) -----------------------------------
+def _git_status_files(subdir):
+    """Tagasta dict {relative_path: status_char} subdir-i kohta."""
+    if not subdir.is_dir():
+        return {}
+    files = {}
+    for p in subdir.rglob("*"):
+        if p.is_file():
+            rel = p.relative_to(REPO_DIR)
+            files[str(rel).replace("\\", "/")] = " "
+    res = subprocess.run(
+        ["git", "-C", str(REPO_DIR), "status", "--porcelain=v1", "--",
+         str(subdir.relative_to(REPO_DIR)).replace("\\", "/")],
+        capture_output=True, check=False, text=True, encoding="utf-8",
+    )
+    if res.returncode == 0:
+        for line in res.stdout.splitlines():
+            if len(line) < 4:
+                continue
+            x_y = line[:2]
+            path = line[3:].strip()
+            if x_y == "??":
+                files[path] = "?"
+            elif "M" in x_y:
+                files[path] = "M"
+            elif "A" in x_y:
+                files[path] = "A"
+            elif "!" in x_y:
+                files[path] = "!"
+    return files
+
+
+def step_inspect_certificates():
+    """Naita branch-i Certificates/Prod ja Certificates/Dev sisu (source-pool).
+
+    NB! See on SOURCE-vaade (mida git checkout andis), MITTE bin-vaade.
+    bin/Certificates/-i naitab samm 18 lopubanner pohja peal (disk-kontroll).
+    """
+    step(10, 18, "Certificates/Prod + Certificates/Dev kontroll (source)")
+    cert_prod = EXAMPLE_DIR / "Certificates" / "Prod"
+    cert_dev = EXAMPLE_DIR / "Certificates" / "Dev"
+
+    def _print_dir(label, dir_path):
+        print()
+        print(f"  {B}{label}: {dir_path}{N}")
+        if not dir_path.is_dir():
+            print(f"    (kausta pole)")
+            return
+        files = _git_status_files(dir_path)
+        if not files:
+            print(f"    (kaust on tyhi)")
+            return
+        for path, status in sorted(files.items()):
+            name = Path(path).name
+            if status == "?":
+                tag = f"{Y}untracked{N} (jaanuk eelmisest jooksust voi step_ensure_ca_certs download)"
+            elif status == "M":
+                tag = f"{Y}modified{N}"
+            elif status == "A":
+                tag = f"{Y}added (staged){N}"
+            elif status == "!":
+                tag = f"{R}ignored{N}"
+            else:
+                tag = f"{G}tracked (haru osa){N}"
+            print(f"    {name:40s}  {tag}")
+
+    _print_dir("Live CA-d (Prod/)", cert_prod)
+    _print_dir("Test CA-d (Dev/)", cert_dev)
+    print()
+    info(f"NB! See on SOURCE-vaade. Lopubanner naitab mis joudis BIN-i (runtime).")
+
+
+# --- 11. Patch Startup.cs + DigiDocConfiguration.cs (ainult --profile dev) ---
 def step_source_patches_dev():
     """Production-modes test-CA-de ja test-TSL-i sundimine — AINULT --profile dev.
 
@@ -608,7 +680,7 @@ def step_source_patches_dev():
     Live-kaardi autentimine kukub CertificateNotTrustedException-iga, kuigi
     cert-failid ja chain on õiged.
     """
-    step(10, 16, "Source-patchid: Startup.cs + DigiDocConfiguration.cs")
+    step(11, 18, "Source-patchid: Startup.cs + DigiDocConfiguration.cs")
 
     # Taasta lähekood git HEAD-ist (eemaldab eelmise profile-i jäänukid)
     for f in (STARTUP_CS, DIGIDOC_CONFIG_CS):
@@ -657,9 +729,87 @@ def step_source_patches_dev():
     else:
         warn(f"{DIGIDOC_CONFIG_CS} ei eksisteeri")
 
-# --- 9. Copy .cs files ------------------------------------------------------
+
+# --- 12. CertificateLoader.cs + .csproj patchid (log-tostuse jaoks) --------
+def step_instrument_cert_loader():
+    """Lisa Console.WriteLine CertificateLoader.cs-i + .csproj cer-copy direktiiv.
+
+    Pohjus: upstream CertificateLoader.cs EI logi sertide laadimist. Test-
+    raportite jaoks on vaja log-tostust ('CertificateLoader luges molemad cer-failid
+    sisse'). Lisaks: kui Certificates/Prod/ voi Dev/ sisaldab uusi cer-faile aga
+    .csproj-i pole copy-direktiivi olemas, MSBuild ei kopeeri neid bin-i ja
+    app ei loe neid.
+
+    Sammud:
+      1. Reverti CertificateLoader.cs git HEAD-ist (eelmise jooksu patch tagasi)
+      2. Lisa CertificateLoader.cs-i Console.WriteLine per loaded cert
+      3. Kontrolli .csproj-i; lisa cer-copy direktiiv kui puudub
+    """
+    step(12, 18, "CertificateLoader.cs instrumenteerimine + .csproj cer-copy")
+
+    cert_loader = EXAMPLE_DIR / "Certificates" / "CertificateLoader.cs"
+
+    if cert_loader.is_file():
+        result = subprocess.run(
+            ["git", "-C", str(REPO_DIR), "checkout", "HEAD", "--", str(cert_loader)],
+            capture_output=True, check=False, text=True,
+        )
+        if result.returncode == 0:
+            info(f"Taastatud git HEAD-ist: {cert_loader.name}")
+    else:
+        warn(f"{cert_loader} puudub -- ei saa instrumenteerida")
+        return
+
+    content = cert_loader.read_text(encoding="utf-8")
+    OLD_BODY = (
+        "            return new FileReader(GetCertPath(isTest), \"*.cer\").ReadFiles()\n"
+        "                .Select(file => new X509Certificate2(file))\n"
+        "                .ToArray();"
+    )
+    NEW_BODY = (
+        "            var path = GetCertPath(isTest);\n"
+        "            System.Console.WriteLine($\"[CertificateLoader] Loading from: {path}\");\n"
+        "            var certs = new FileReader(path, \"*.cer\").ReadFiles()\n"
+        "                .Select(file => new X509Certificate2(file))\n"
+        "                .ToArray();\n"
+        "            foreach (var c in certs) System.Console.WriteLine($\"[CertificateLoader] Loaded: Subject={c.Subject}, NotAfter={c.NotAfter:yyyy-MM-dd}\");\n"
+        "            return certs;"
+    )
+    if "[CertificateLoader] Loaded:" in content:
+        info("CertificateLoader.cs juba instrumenteeritud")
+    elif OLD_BODY in content:
+        cert_loader.write_text(content.replace(OLD_BODY, NEW_BODY), encoding="utf-8")
+        info("CertificateLoader.cs instrumenteeritud (Console.WriteLine per laaditud cer)")
+    else:
+        warn("CertificateLoader.cs vorming muutunud -- ei suutnud patchida")
+
+    csproj_content = CSPROJ.read_text(encoding="utf-8")
+    has_copy_directive = (
+        'Update="Certificates\\**\\*.cer"' in csproj_content
+        or 'Update="Certificates/**/*.cer"' in csproj_content
+    )
+    if has_copy_directive:
+        info(".csproj juba sisaldab Certificates/**/*.cer copy-direktiivi")
+    else:
+        insert = (
+            '  <ItemGroup>\n'
+            '    <None Update="Certificates/**/*.cer">\n'
+            '      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n'
+            '    </None>\n'
+            '  </ItemGroup>\n'
+            '</Project>'
+        )
+        new_csproj = csproj_content.replace('</Project>', insert)
+        if new_csproj == csproj_content:
+            warn(".csproj-is </Project> tag-i ei leitud -- ei suutnud patchida")
+        else:
+            CSPROJ.write_text(new_csproj, encoding="utf-8")
+            info(".csproj patchitud: Certificates/**/*.cer kopeeritakse bin-i")
+
+
+# --- 13. Copy .cs files ------------------------------------------------------
 def step_copy_cs_bindings():
-    step(11, 16, "libdigidocpp C# bindings (.cs failid) projektisse")
+    step(13, 18, "libdigidocpp C# bindings (.cs failid) projektisse")
     DIGIDOC_DIR.mkdir(parents=True, exist_ok=True)
     cs_source = LIBDIGIDOCPP_BASE / "include" / "digidocpp_csharp"
     if not cs_source.is_dir():
@@ -672,10 +822,10 @@ def step_copy_cs_bindings():
 # --- 10. Test-TSL flag (ainult --profile dev) -------------------------------
 def step_tsl_flag():
     if PROFILE == "prod":
-        step(12, 16, "TSL config (prod-profile — EE_T.xml ei vaja)")
+        step(14, 18, "TSL config (prod-profile — EE_T.xml ei vaja)")
         info("Live-kaardid kasutavad live TSL-i.")
         return
-    step(12, 16, "Test-TSL flag (EE_T.xml)")
+    step(14, 18, "Test-TSL flag (EE_T.xml)")
     if IS_WINDOWS:
         appdata = Path(os.environ.get("APPDATA", HOME / "AppData" / "Roaming"))
         tsl_dir = appdata / "digidocpp" / "tsl"
@@ -688,7 +838,7 @@ def step_tsl_flag():
 
 # --- 11. Build --------------------------------------------------------------
 def step_build():
-    step(13, 16, "Ehitamine (dotnet restore + build)")
+    step(15, 18, "Ehitamine (dotnet restore + build)")
 
     # Tapa kõik vanad WebEid.AspNetCore.Example protsessid mis eelmistest käivitustest
     # alles ja hoiavad bin/Debug/net8.0/*.dll faile lukus. Ilma selleta kukub build
@@ -715,7 +865,7 @@ def step_build():
 # --- 12. Start ngrok tunnel + update appsettings.json -----------------------
 def step_ngrok_tunnel():
     global NGROK_PROC
-    step(14, 16, "ngrok tunnel kaivitamine")
+    step(16, 18, "ngrok tunnel kaivitamine")
     info(f"Kaivitan: ngrok http {APP_PORT}")
     ngrok_log = TOOLS_DIR / "ngrok.log"
     NGROK_PROC = subprocess.Popen(
@@ -768,7 +918,7 @@ def step_ngrok_tunnel():
 
 # --- 13. Copy native libs + digidocpp.conf (prod) ---------------------------
 def step_copy_native_libs():
-    step(15, 16, "libdigidocpp natiivteegid build output-i")
+    step(17, 18, "libdigidocpp natiivteegid build output-i")
     bin_dir = EXAMPLE_DIR / "bin" / "Debug" / "net8.0"
     if not bin_dir.is_dir():
         fail(f"Build output ei eksisteeri: {bin_dir}")
@@ -796,9 +946,126 @@ def step_copy_native_libs():
         )
         info(f"Prod-profile: loodud {conf_path} (ts.url = https://eid-dd.ria.ee/ts)")
 
-# --- 14. Run app (ngrok + dotnet) -------------------------------------------
+# --- Sertide laadimise verifitseerija (DISK-pohine, profile-agnostiline) ----
+CERT_ERROR_RE = re.compile(
+    r'(CryptographicException|X509Certificate\w*Exception|'
+    r'FileNotFoundException[^\n]*\.cer|Unhandled exception)',
+    re.IGNORECASE,
+)
+APP_START_RE = re.compile(r'Now listening on|Application started')
+ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
+
+
+def _list_cert_files(dir_path):
+    if not dir_path.is_dir():
+        return None
+    return sorted(dir_path.glob("*.cer"))
+
+
+def _emit(line, logf=None):
+    """Tryki rida konsooli (varvidega) ja kui logf antud, ka faili (ilma ANSI)."""
+    print(line)
+    if logf is not None:
+        clean = ANSI_RE.sub('', line)
+        logf.write(clean + '\n')
+        logf.flush()
+
+
+def _print_cert_verification(errors, bin_dir, log_file, logf=None):
+    """Trukk verifitseerimise banneri konsooli + valikuliselt logi-faili."""
+    cert_prod = bin_dir / "Certificates" / "Prod"
+    cert_dev = bin_dir / "Certificates" / "Dev"
+
+    _emit("", logf)
+    _emit(f"{B}=================================================================={N}", logf)
+    _emit(f"{B}  SERTIDE LAADIMISE KONTROLL (profile={PROFILE}){N}", logf)
+    _emit(f"{B}=================================================================={N}", logf)
+
+    if errors:
+        _emit(f"  {R}EXCEPTION-EID LEITUD logist (sertide laadimine kukkus?):{N}", logf)
+        for line in errors[:5]:
+            _emit(f"    {R}{line[:200]}{N}", logf)
+        if len(errors) > 5:
+            _emit(f"    {R}... veel {len(errors) - 5} viga (vaata logi: {log_file}){N}", logf)
+    else:
+        _emit(f"  {G}OK -- exception-eid puuduvad (app kaivitus normaalselt){N}", logf)
+
+    _emit("", logf)
+    _emit(f"  {B}Build-output-is deploitud CA-failid:{N}", logf)
+
+    prod_files = _list_cert_files(cert_prod)
+    _emit(f"  Live CA-d  ({cert_prod}):", logf)
+    if prod_files is None:
+        _emit(f"    {R}(kausta pole olemas -- build kukkus?){N}", logf)
+    elif not prod_files:
+        _emit(f"    {Y}(tyhi){N}", logf)
+    else:
+        for c in prod_files:
+            _emit(f"    {c.name:40s} {c.stat().st_size} B", logf)
+
+    dev_files = _list_cert_files(cert_dev)
+    _emit(f"  Test CA-d  ({cert_dev}):", logf)
+    if dev_files is None:
+        _emit(f"    {Y}(kausta pole olemas){N}", logf)
+    elif not dev_files:
+        _emit(f"    {Y}(tyhi){N}", logf)
+    else:
+        for c in dev_files:
+            _emit(f"    {c.name:40s} {c.stat().st_size} B", logf)
+
+    # Profile-spetsiifiline jareldus
+    _emit("", logf)
+    if PROFILE == "dev":
+        _emit(f"  {B}--profile dev: app loeb test-CA-d Dev/-st{N}", logf)
+        test_thales = cert_dev / "TestESTEID2025.cer"
+        if test_thales.is_file() and test_thales.stat().st_size > 0:
+            _emit(f"  {G}>>> Dev/TestESTEID2025.cer ON OLEMAS ({test_thales.stat().st_size} B){N}", logf)
+            _emit(f"  {G}    Test Thales-kaart peaks autentimisel TOOLE HAKKAMA.{N}", logf)
+        else:
+            _emit(f"  {R}>>> Dev/TestESTEID2025.cer PUUDUB{N}", logf)
+            _emit(f"  {R}    Test Thales-kaart autentides KUKUB.{N}", logf)
+    else:  # prod
+        _emit(f"  {B}--profile prod: app loeb live-CA-d Prod/-st{N}", logf)
+        live_thales = cert_prod / "ESTEID2025.cer"
+        if live_thales.is_file() and live_thales.stat().st_size > 0:
+            _emit(f"  {G}>>> Prod/ESTEID2025.cer ON OLEMAS ({live_thales.stat().st_size} B){N}", logf)
+            _emit(f"  {G}    Live Thales-kaart peaks autentimisel TOOLE HAKKAMA.{N}", logf)
+        else:
+            _emit(f"  {R}>>> Prod/ESTEID2025.cer PUUDUB{N}", logf)
+            _emit(f"  {R}    Live Thales-kaart autentides KUKUB.{N}", logf)
+
+    _emit(f"{B}=================================================================={N}", logf)
+    _emit("", logf)
+
+
+def _stream_with_cert_check(proc, logf, log_file, bin_dir):
+    """Loe dotnet run stdout rida-haaval, kirjuta konsooli + faili, jalgi vigu."""
+    cert_error_lines = []
+    verification_printed = False
+
+    for line in proc.stdout:
+        sys.stdout.write(line)
+        sys.stdout.flush()
+        logf.write(line)
+
+        if verification_printed:
+            continue
+
+        if CERT_ERROR_RE.search(line):
+            cert_error_lines.append(line.rstrip())
+        if APP_START_RE.search(line):
+            _print_cert_verification(cert_error_lines, bin_dir, log_file, logf)
+            verification_printed = True
+
+    if not verification_printed:
+        _emit("", logf)
+        _emit(f"  {R}HOIATUS: app ei joudnud 'Now listening on' faasi -- startup kukkus?{N}", logf)
+        _print_cert_verification(cert_error_lines, bin_dir, log_file, logf)
+
+
+# --- 18. Run app (ngrok + dotnet) -------------------------------------------
 def step_run_app(public_url: str):
-    step(16, 16, f"Rakenduse kaivitamine ({public_url})")
+    step(18, 18, f"Rakenduse kaivitamine ({public_url})")
     env = os.environ.copy()
     env["ASPNETCORE_ENVIRONMENT"] = "Production"  # alati Production (ngrok ForwardedHeaders)
     env["ASPNETCORE_URLS"] = APP_URL_LOCAL
@@ -846,12 +1113,10 @@ def step_run_app(public_url: str):
         errors="replace",
         bufsize=1,
     )
+    bin_dir = EXAMPLE_DIR / "bin" / "Debug" / "net8.0"
     try:
         with open(log_file, "w", encoding="utf-8", buffering=1) as logf:
-            for line in proc.stdout:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-                logf.write(line)
+            _stream_with_cert_check(proc, logf, log_file, bin_dir)
     except KeyboardInterrupt:
         print("\nRakendus peatatud (Ctrl+C).")
         proc.terminate()
@@ -891,7 +1156,9 @@ def main():
         step_local_nuget_build()      # NEW: WebEid.Security → 1.2.0-beta1.nupkg
         step_patch_csproj()           # NEW: PackageReference 1.2.0-beta1
         step_ensure_ca_certs()
+        step_inspect_certificates()       # NEW: source Certificates/ kontroll
         step_source_patches_dev()
+        step_instrument_cert_loader()     # NEW: CertificateLoader log + .csproj cer-copy
         step_copy_cs_bindings()
         step_tsl_flag()
         step_build()
