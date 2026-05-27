@@ -835,7 +835,7 @@ Pärast Java näite valmis saamist saad Apache tagasi käima panna:
 | [`setup-vmware-shared-folder.sh`](setup-vmware-shared-folder.sh) | VMware Shared Folder Ubuntu pool | Ubuntu (VMware VM) |
 | [`keep-awake.sh`](keep-awake.sh) | Keelab idle-actions (ekraan / sleep / ketas / lukustus) | Ubuntu/GNOME, macOS |
 | [`keep-awake.cmd`](keep-awake.cmd) | Sama Windowsi versioon | Windows 10/11 |
-| [`putty-ssh-voti.md`](putty-ssh-voti.md) | PuTTY SSH-võtme seadistamine (OpenSSH→.ppk, Pageant) | Windows |
+| [`putty-ssh-voti.md`](guides/putty-ssh-voti.md) | PuTTY SSH-võtme seadistamine (OpenSSH→.ppk, Pageant) | Windows |
 
 <details>
 <summary><b>VMware Shared Folder</b></summary>
@@ -943,7 +943,7 @@ JA registry (HKCU, ei vaja admin-õigusi):
 
 Kuidas panna SSH privaatvõti PuTTY-sse, salvestada sessioon ja ühenduda
 serverisse ilma parooli iga kord sisestamata. Täielik samm-sammuline juhend:
-**[`putty-ssh-voti.md`](putty-ssh-voti.md)**.
+**[`putty-ssh-voti.md`](guides/putty-ssh-voti.md)**.
 
 Lühikokkuvõte:
 
