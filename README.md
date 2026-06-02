@@ -41,6 +41,9 @@ Skriptid jagunevad kahte rühma:
 
 - [`web-extension-check-firefox.ps1`](#web-eid-brauserilaiendus-web-eid-webextension) — Firefox Temporary Add-on versiooni-kontroll (Windows)
 - [`web-extension-check-chrome.ps1`](#web-eid-brauserilaiendus-web-eid-webextension) — Chrome / Edge Load unpacked versiooni-kontroll (Windows)
+- [`web-extension-check-firefox.sh`](#web-eid-brauserilaiendus-web-eid-webextension) — Firefox Temporary Add-on versiooni-kontroll (Linux / macOS)
+- [`web-extension-check-chrome.sh`](#web-eid-brauserilaiendus-web-eid-webextension) — Chrome / Edge Load unpacked versiooni-kontroll (Linux / macOS)
+- [`guides/safari-web-eid-versioonikontroll.md`](guides/safari-web-eid-versioonikontroll.md) — Safari versiooni-kontroll käsitsi (macOS, TestFlight)
 
 **Muud seadistused ja juhendid** ([üksikasjad](#muud-seadistused-ja-juhendid))
 
@@ -912,10 +915,13 @@ Brauserilaienduse release-testimisel on testijal vaja kinnitada **kaks versiooni
 
 Skriptid loevad mõlemad numbrid välja ja kuvavad ühel real raporti-sobivas formaadis.
 
-| Skript | Otstarve | Platvorm |
+| Skript / juhend | Otstarve | Platvorm |
 |---|---|---|
 | [`web-extension-check-firefox.ps1`](web-extension-check-firefox.ps1) | Firefox Temporary Add-on (`firefox.zip`) versiooni-kontroll | Windows |
 | [`web-extension-check-chrome.ps1`](web-extension-check-chrome.ps1) | Chrome / Edge Load unpacked (`chrome\`) versiooni-kontroll | Windows |
+| [`web-extension-check-firefox.sh`](web-extension-check-firefox.sh) | Firefox Temporary Add-on (`firefox.zip`) versiooni-kontroll | Linux, macOS |
+| [`web-extension-check-chrome.sh`](web-extension-check-chrome.sh) | Chrome / Edge Load unpacked (`chrome/`) versiooni-kontroll | Linux, macOS |
+| [`guides/safari-web-eid-versioonikontroll.md`](guides/safari-web-eid-versioonikontroll.md) | Safari versiooni-kontroll käsitsi (UI + terminal, TestFlight pakist) | macOS |
 
 <details>
 <summary><b>Firefox — Temporary Add-on versiooni-kontroll</b></summary>
@@ -987,6 +993,104 @@ Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | C:\Users\<sina>\Downloads\chrome
 
 Chrome ja Edge kasutavad alati MV3 (Manifest V3), sest Google eemaldas MV2 toe
 Chrome'ist 2024 aastal. Edge järgib Chromium-platvormi vaikimisi.
+
+</details>
+
+<details>
+<summary><b>Firefox — Linux / macOS Temporary Add-on versiooni-kontroll</b></summary>
+
+Sama loogika nagu Windowsi PowerShelli-skriptis, aga bashis Linux/macOS-i jaoks.
+Eeldab `unzip`-i ja `python3`-i (mõlemad vaikimisi olemas).
+
+**Eeldus:** Web eID Firefoxi release-pakk on alla laetud `~/Downloads/firefox.zip`-iks.
+
+```bash
+# Linux
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/web-extension-check-firefox.sh
+chmod +x web-extension-check-firefox.sh
+./web-extension-check-firefox.sh
+
+# macOS
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/web-extension-check-firefox.sh
+chmod +x web-extension-check-firefox.sh
+./web-extension-check-firefox.sh
+```
+
+Või kui pakk on mujal:
+
+```bash
+./web-extension-check-firefox.sh /teine/path/firefox.zip
+```
+
+**Väljund:**
+
+```
+Web eID 2.5.0 (MV2) | web-eid.js 2.1.0 | /home/<sina>/Downloads/firefox.zip
+```
+
+</details>
+
+<details>
+<summary><b>Chrome / Edge — Linux / macOS Load unpacked versiooni-kontroll</b></summary>
+
+Sama loogika nagu Windowsi PowerShelli-skriptis, aga bashis Linux/macOS-i jaoks.
+Eeldab `python3`-i (vaikimisi olemas). `unzip`-i pole vaja, sest Chrome/Edge
+laeb kataloogi otse (Load unpacked).
+
+**Eeldus:** Web eID Chrome'i release-pakk on lahti-pakitud kausta
+`~/Downloads/chrome/` (`manifest.json` peab olema selle kausta juurikus).
+
+Edge kasutab **sama Chromium-paki**, eraldi skripti ega kataloogi pole vaja.
+
+```bash
+# Linux
+wget https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/web-extension-check-chrome.sh
+chmod +x web-extension-check-chrome.sh
+./web-extension-check-chrome.sh
+
+# macOS
+curl -O https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/web-extension-check-chrome.sh
+chmod +x web-extension-check-chrome.sh
+./web-extension-check-chrome.sh
+```
+
+Või kui kataloog on mujal:
+
+```bash
+./web-extension-check-chrome.sh /teine/path/chrome
+```
+
+**Väljund:**
+
+```
+Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | /home/<sina>/Downloads/chrome
+```
+
+</details>
+
+<details>
+<summary><b>Safari (macOS) — versiooni-kontroll käsitsi (skripti pole)</b></summary>
+
+Safari laiendused **ei toeta** "Load unpacked" ega "Temporary Add-on"
+arendaja-režiimi — pakk distub macOS-i rakenduse osana (TestFlight
+pre-release-i jaoks, App Store release-i jaoks) ja laiendus elab
+`.appex` bundle-i sees.
+
+Seetõttu pole Safari jaoks skripti — kõik on käsitsi vaadeldav.
+
+**Laienduse versioon (Safari UI-st):**
+1. Safari → Settings (`⌘,`) → Extensions
+2. Vali Web eID — versioon kuvatakse nime kõrval
+
+**Bundeldatud web-eid.js (terminalist):**
+
+```bash
+APP="/Applications/Web eID.app"   # kohanda nime vajadusel
+find "$APP" -name "*.js" -type f -exec grep -oh 'VERSION:[[:space:]]*"[0-9.]\+"' {} \; 2>/dev/null | sort -u
+```
+
+Täielik juhend koos TestFlight-paigalduse selgituse ja raporti-rea näitega:
+**[`guides/safari-web-eid-versioonikontroll.md`](guides/safari-web-eid-versioonikontroll.md)**.
 
 </details>
 
