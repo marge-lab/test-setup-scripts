@@ -1007,6 +1007,8 @@ Chrome:  Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | C:\Users\...\Downloads\chrome
 Edge:    Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | (sama kataloog mis Chrome)
 ```
 
+> **NB!** Erinev manifesti-versioon (Firefox MV2, Chrome/Edge MV3) tuleneb brauserite endi platvormi-poliitikast — Chrome eemaldas MV2 toe 2024, Firefox toetab MV2 edasi.
+
 **Kui `web-eid.js`-i väärtuseks on `?`** — bundeldatud paki sees ei leitud
 ühtegi `VERSION:"x.y.z"` konstanti. See võib tähendada, et rollup tree-shake'is
 selle välja (kui koodis seda väärtust ei kasutata). Sellisel juhul kontrolli
