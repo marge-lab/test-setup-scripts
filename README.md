@@ -42,7 +42,7 @@ Skriptid jagunevad kahte rühma:
 - [`web-extension-check-firefox.ps1`](#web-eid-brauserilaiendus-web-eid-webextension) — Firefox Temporary Add-on versiooni-kontroll (Windows)
 - [`web-extension-check-chrome.ps1`](#web-eid-brauserilaiendus-web-eid-webextension) — Chrome / Edge Load unpacked versiooni-kontroll (Windows)
 - [`web-extension-check-firefox.sh`](#web-eid-brauserilaiendus-web-eid-webextension) — Firefox Temporary Add-on versiooni-kontroll (Linux / macOS)
-- [`web-extension-check-chrome.sh`](#web-eid-brauserilaiendus-web-eid-webextension) — Chrome / Edge Load unpacked versiooni-kontroll (Linux / macOS)
+- [`web-extension-check-chrome.sh`](#web-eid-brauserilaiendus-web-eid-webextension) — Chrome Load unpacked versiooni-kontroll (Linux / macOS — Edge'i Linuxil/macOS-il ei testita)
 - [`guides/safari-web-eid-versioonikontroll.md`](guides/safari-web-eid-versioonikontroll.md) — Safari versiooni-kontroll käsitsi (macOS, TestFlight)
 
 **Muud seadistused ja juhendid** ([üksikasjad](#muud-seadistused-ja-juhendid))
@@ -920,7 +920,7 @@ Skriptid loevad mõlemad numbrid välja ja kuvavad ühel real raporti-sobivas fo
 | [`web-extension-check-firefox.ps1`](web-extension-check-firefox.ps1) | Firefox Temporary Add-on (`firefox.zip`) versiooni-kontroll | Windows |
 | [`web-extension-check-chrome.ps1`](web-extension-check-chrome.ps1) | Chrome / Edge Load unpacked (`chrome\`) versiooni-kontroll | Windows |
 | [`web-extension-check-firefox.sh`](web-extension-check-firefox.sh) | Firefox Temporary Add-on (`firefox.zip`) versiooni-kontroll | Linux, macOS |
-| [`web-extension-check-chrome.sh`](web-extension-check-chrome.sh) | Chrome / Edge Load unpacked (`chrome/`) versiooni-kontroll | Linux, macOS |
+| [`web-extension-check-chrome.sh`](web-extension-check-chrome.sh) | Chrome Load unpacked (`chrome/`) versiooni-kontroll (Edge'i Linuxil/macOS-il ei testita) | Linux, macOS |
 | [`guides/safari-web-eid-versioonikontroll.md`](guides/safari-web-eid-versioonikontroll.md) | Safari versiooni-kontroll käsitsi (UI + terminal, TestFlight pakist) | macOS |
 
 <details>
@@ -1031,16 +1031,14 @@ Web eID 2.5.0 (MV2) | web-eid.js 2.1.0 | /home/<sina>/Downloads/firefox.zip
 </details>
 
 <details>
-<summary><b>Chrome / Edge — Linux / macOS Load unpacked versiooni-kontroll</b></summary>
+<summary><b>Chrome — Linux / macOS Load unpacked versiooni-kontroll</b></summary>
 
 Sama loogika nagu Windowsi PowerShelli-skriptis, aga bashis Linux/macOS-i jaoks.
-Eeldab `python3`-i (vaikimisi olemas). `unzip`-i pole vaja, sest Chrome/Edge
+Eeldab `python3`-i (vaikimisi olemas). `unzip`-i pole vaja, sest Chrome
 laeb kataloogi otse (Load unpacked).
 
 **Eeldus:** Web eID Chrome'i release-pakk on lahti-pakitud kausta
 `~/Downloads/chrome/` (`manifest.json` peab olema selle kausta juurikus).
-
-Edge kasutab **sama Chromium-paki**, eraldi skripti ega kataloogi pole vaja.
 
 ```bash
 # Linux

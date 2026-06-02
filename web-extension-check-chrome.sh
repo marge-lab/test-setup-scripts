@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 #
-# Web eID brauserilaienduse versiooni-kontroll - Chrome / Edge (Load unpacked)
+# Web eID brauserilaienduse versiooni-kontroll - Chrome (Load unpacked)
 #
-# Loeb Chrome'i/Edge'i "Load unpacked" abil laetud lahti-pakitud kataloogi
+# Loeb Chrome'i "Load unpacked" abil laetud lahti-pakitud kataloogi
 # sisust valja nii laienduse enda versiooni (manifest.json) kui ka bundeldatud
-# lib/web-eid.js teegi versiooni (VERSION konstant koodis). Edge kasutab sama
-# Chromium-paki - eraldi skripti pole vaja.
+# lib/web-eid.js teegi versiooni (VERSION konstant koodis).
 #
 # Vaikimisi loeb kausta ~/Downloads/chrome/.
 #
@@ -14,6 +13,7 @@
 #   ./web-extension-check-chrome.sh /teine/path/chrome
 #
 # Toetab Linux + macOS. Vajab: python3 (molemad mac/linux vaikimisi).
+# NB! Edge'i Linuxil/macOS-il ei testita - selleks pole eraldi sammu.
 #
 # Vastus uhel real, sobib otse raportisse:
 #   Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | /home/<sina>/Downloads/chrome
