@@ -37,6 +37,11 @@ Skriptid jagunevad kahte rühma:
 
 - [`web-eid-app-build-ubuntu.sh`](#web-eid-rakendus-web-eid-app) — natiivrakenduse ehitus (Docker + lokaalne) ja kaarditest
 
+**Web eID brauserilaiendus (web-eid-webextension)** ([üksikasjad](#web-eid-brauserilaiendus-web-eid-webextension))
+
+- [`web-extension-check-firefox.ps1`](#web-eid-brauserilaiendus-web-eid-webextension) — Firefox Temporary Add-on versiooni-kontroll (Windows)
+- [`web-extension-check-chrome.ps1`](#web-eid-brauserilaiendus-web-eid-webextension) — Chrome / Edge Load unpacked versiooni-kontroll (Windows)
+
 **Muud seadistused ja juhendid** ([üksikasjad](#muud-seadistused-ja-juhendid))
 
 - VMware Shared Folder
@@ -891,6 +896,122 @@ bash web-eid-app-build-ubuntu.sh
 rakenduse funktsionaalsust (samm 6) saab testida ainult kohaliku ehitusega
 otse hostmasinas. Docker-samm verifitseerib **ainult ehituse** puhtas
 keskkonnas (et CI paketiloend on piisav ja `.deb` failid tekivad).
+
+</details>
+
+---
+
+## Web eID brauserilaiendus (web-eid-webextension)
+
+> **NB!** See ei ole sama mis [web-eid-app](#web-eid-rakendus-web-eid-app) (natiivne töölaua-rakendus). See peatükk käsitleb **brauserilaiendust** ([web-eid-webextension](https://github.com/web-eid/web-eid-webextension)) — Chrome/Edge/Firefox laiendust, mis suhtleb veebilehega ja kasutab kohaliku `web-eid-app`-i kaardi-operatsioonideks.
+
+Brauserilaienduse release-testimisel on testijal vaja kinnitada **kaks versiooni-numbrit** ühes paki sees:
+
+1. **Laienduse enda versioon** — tuleb `manifest.json` `version` väljast (nt 2.5.0)
+2. **Bundeldatud `lib/web-eid.js` teegi versioon** — tuleb laienduse `.js` failidesse bundeldatud `VERSION:"x.y.z"` konstandist (nt 2.1.0)
+
+Skriptid loevad mõlemad numbrid välja ja kuvavad ühel real raporti-sobivas formaadis.
+
+| Skript | Otstarve | Platvorm |
+|---|---|---|
+| [`web-extension-check-firefox.ps1`](web-extension-check-firefox.ps1) | Firefox Temporary Add-on (`firefox.zip`) versiooni-kontroll | Windows |
+| [`web-extension-check-chrome.ps1`](web-extension-check-chrome.ps1) | Chrome / Edge Load unpacked (`chrome\`) versiooni-kontroll | Windows |
+
+<details>
+<summary><b>Firefox — Temporary Add-on versiooni-kontroll</b></summary>
+
+Firefoxis laetakse testitav release-pakk `about:debugging#/runtime/this-firefox` →
+**Load Temporary Add-on** kaudu otse `firefox.zip` failist. Skript loeb selle
+sama zip-i sisust välja versioonid.
+
+**Eeldus:** Web eID Firefoxi release-pakk on alla laetud `%USERPROFILE%\Downloads\firefox.zip`-iks.
+
+```cmd
+:: Lae alla skript
+curl -o web-extension-check-firefox.ps1 https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/web-extension-check-firefox.ps1
+
+:: Kaivita PowerShellis
+powershell -NoProfile -ExecutionPolicy Bypass -File .\web-extension-check-firefox.ps1
+```
+
+Või kui pakk on mujal:
+
+```cmd
+powershell -NoProfile -ExecutionPolicy Bypass -File .\web-extension-check-firefox.ps1 -Path C:\teine\path\firefox.zip
+```
+
+**Väljund** (üks rida, sobib otse raportisse):
+
+```
+Web eID 2.5.0 (MV2) | web-eid.js 2.1.0 | C:\Users\<sina>\Downloads\firefox.zip
+```
+
+Firefox kasutab MV2 paki (mitte MV3 nagu Chrome), kuna Mozilla toetab MV2 edasi
+ja Web eID tiim ei ole MV3-Firefox build-i veel vahetanud (manifest_v3.json on
+repos olemas, aga build-skript valib endiselt MV2 manifesti).
+
+</details>
+
+<details>
+<summary><b>Chrome / Edge — Load unpacked versiooni-kontroll</b></summary>
+
+Chrome ja Edge'is laetakse testitav release-pakk Developer mode'is
+**Load unpacked** kaudu **lahti-pakitud kataloogist** (mitte zip-failist).
+Skript loeb otse selle kataloogi sisust välja versioonid — extract-imist pole vaja.
+
+**Eeldus:** Web eID Chrome'i release-pakk on lahti-pakitud kausta
+`%USERPROFILE%\Downloads\chrome\` (`manifest.json` peab olema selle kausta
+juurikus, mitte alamkaustas).
+
+Edge kasutab **sama Chromium-paki**, eraldi skripti ega kataloogi pole vaja.
+
+```cmd
+:: Lae alla skript
+curl -o web-extension-check-chrome.ps1 https://raw.githubusercontent.com/marge-lab/test-setup-scripts/main/web-extension-check-chrome.ps1
+
+:: Kaivita PowerShellis
+powershell -NoProfile -ExecutionPolicy Bypass -File .\web-extension-check-chrome.ps1
+```
+
+Või kui kataloog on mujal:
+
+```cmd
+powershell -NoProfile -ExecutionPolicy Bypass -File .\web-extension-check-chrome.ps1 -Path C:\teine\path\chrome
+```
+
+**Väljund** (üks rida, sobib otse raportisse):
+
+```
+Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | C:\Users\<sina>\Downloads\chrome
+```
+
+Chrome ja Edge kasutavad alati MV3 (Manifest V3), sest Google eemaldas MV2 toe
+Chrome'ist 2024 aastal. Edge järgib Chromium-platvormi vaikimisi.
+
+</details>
+
+<details>
+<summary><b>Mida mõlema brauseri puhul oodata</b></summary>
+
+Mõlemad skriptid annavad sama formaadi väljundi:
+
+```
+Web eID <laienduse-versioon> (MV<2 või 3>) | web-eid.js <teegi-versioon> | <allikas>
+```
+
+Näide testimisraportis:
+
+```
+Firefox: Web eID 2.5.0 (MV2) | web-eid.js 2.1.0 | C:\Users\...\Downloads\firefox.zip
+Chrome:  Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | C:\Users\...\Downloads\chrome
+Edge:    Web eID 2.5.0 (MV3) | web-eid.js 2.1.0 | (sama kataloog mis Chrome)
+```
+
+**Kui `web-eid.js`-i väärtuseks on `?`** — bundeldatud paki sees ei leitud
+ühtegi `VERSION:"x.y.z"` konstanti. See võib tähendada, et rollup tree-shake'is
+selle välja (kui koodis seda väärtust ei kasutata). Sellisel juhul kontrolli
+manifesti versiooni — kui see on õige release-number, siis paki ehitus oli
+õige ja submodul-versioon on garanteeritud build-konfiguratsiooni järgi.
 
 </details>
 
