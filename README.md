@@ -1083,11 +1083,14 @@ Seetõttu pole Safari jaoks skripti — kõik on käsitsi vaadeldav.
 **Bundeldatud web-eid.js (terminalist):**
 
 ```bash
-APP="/Applications/Web eID.app"   # kohanda nime vajadusel
+APP="/Applications/web-eid-safari.app"   # kontrolli nime: ls /Applications/ | grep -i eid
 find "$APP" -name "*.js" -type f -exec grep -oh 'VERSION:[[:space:]]*"[0-9.]\+"' {} \; 2>/dev/null | sort -u
 ```
 
-Täielik juhend koos TestFlight-paigalduse selgituse ja raporti-rea näitega:
+**NB!** Safaril on **kolm versiooninumbrit** (macOS Safari app `web-eid-safari` /
+laiendus / `web-eid.js` teek) — kõik kolm tuleb raportis välja tuua.
+
+Täielik juhend koos kolme versiooni selgituse, TestFlight-paigalduse ja raporti-rea näitega:
 **[`guides/safari-web-eid-versioonikontroll.md`](guides/safari-web-eid-versioonikontroll.md)**.
 
 </details>
