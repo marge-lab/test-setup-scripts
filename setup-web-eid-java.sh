@@ -93,19 +93,20 @@ cleanup_on_exit() {
 }
 trap cleanup_on_exit EXIT
 
-# --- [1/7] JDK 17 --------------------------------------------
-echo "--- [1/7] JDK 17 ---"
-JDK_DIR=$(ls -d "$TOOLS_DIR"/jdk-17.* 2>/dev/null | sort -V | tail -1 || true)
+# --- [1/7] JDK 21 --------------------------------------------
+JDK_MAJOR=21   # web-eid-authtoken-validation-java vajab Java 21-t (varem 17)
+echo "--- [1/7] JDK $JDK_MAJOR ---"
+JDK_DIR=$(ls -d "$TOOLS_DIR"/jdk-${JDK_MAJOR}.* 2>/dev/null | sort -V | tail -1 || true)
 if [ -n "$JDK_DIR" ] && [ -d "$JDK_DIR" ]; then
-  echo "JDK 17 juba olemas: $(basename "$JDK_DIR"), vahele jätan"
+  echo "JDK $JDK_MAJOR juba olemas: $(basename "$JDK_DIR"), vahele jätan"
 else
-  echo "Laadin uusima JDK 17 GA versiooni Adoptium-ist ($OS_ADOPT/$ADOPT_ARCH)..."
-  http_download "$TOOLS_DIR/jdk17.tar.gz" \
-    "https://api.adoptium.net/v3/binary/latest/17/ga/$OS_ADOPT/$ADOPT_ARCH/jdk/hotspot/normal/eclipse"
-  tar -xzf "$TOOLS_DIR/jdk17.tar.gz" -C "$TOOLS_DIR/"
-  rm -f "$TOOLS_DIR/jdk17.tar.gz"
-  JDK_DIR=$(ls -d "$TOOLS_DIR"/jdk-17.* | sort -V | tail -1)
-  echo "JDK 17 paigaldatud: $(basename "$JDK_DIR")"
+  echo "Laadin uusima JDK $JDK_MAJOR GA versiooni Adoptium-ist ($OS_ADOPT/$ADOPT_ARCH)..."
+  http_download "$TOOLS_DIR/jdk${JDK_MAJOR}.tar.gz" \
+    "https://api.adoptium.net/v3/binary/latest/${JDK_MAJOR}/ga/$OS_ADOPT/$ADOPT_ARCH/jdk/hotspot/normal/eclipse"
+  tar -xzf "$TOOLS_DIR/jdk${JDK_MAJOR}.tar.gz" -C "$TOOLS_DIR/"
+  rm -f "$TOOLS_DIR/jdk${JDK_MAJOR}.tar.gz"
+  JDK_DIR=$(ls -d "$TOOLS_DIR"/jdk-${JDK_MAJOR}.* | sort -V | tail -1)
+  echo "JDK $JDK_MAJOR paigaldatud: $(basename "$JDK_DIR")"
 fi
 
 # macOS-il on JDK Contents/Home all

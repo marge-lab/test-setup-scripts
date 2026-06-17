@@ -752,7 +752,7 @@ bash setup-web-eid-java-branch.sh --branch release-1.2.3
 
 Skript:
 
-1. Paigaldab portatiivse JDK 17 (Adoptium GA) ja ngrok-i `~/tools/` alla
+1. Paigaldab portatiivse JDK 21 (Adoptium GA) ja ngrok-i `~/tools/` alla
 2. Küsib ngrok auth tokenit (eraldi terminaliaknas — vt
    <https://dashboard.ngrok.com/get-started/your-authtoken>)
 3. Tõmbab `web-eid-authtoken-validation-java` repo
