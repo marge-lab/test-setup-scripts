@@ -158,6 +158,19 @@ def run(cmd, *, check=True, capture=False, cwd=None, env=None):
 def has_command(name: str) -> bool:
     return shutil.which(name) is not None
 
+def has_dotnet8() -> bool:
+    """Kas .NET 8 SDK on paigaldatud (dotnet --list-sdks naitab 8.x)?"""
+    if not has_command("dotnet"):
+        return False
+    try:
+        result = run(["dotnet", "--list-sdks"], capture=True, check=False)
+    except FileNotFoundError:
+        return False
+    return result.returncode == 0 and any(
+        line.startswith("8.") for line in result.stdout.splitlines()
+    )
+
+
 def ask_yn(prompt: str, default_yes: bool = True) -> bool:
     default_label = "Y/n" if default_yes else "y/N"
     while True:
@@ -195,7 +208,7 @@ def winget_install(package_id: str, friendly_name: str):
     ], check=False)
     OK_EXIT_CODES = {0, 3010, 1641, 2316632107}
     if result.returncode not in OK_EXIT_CODES:
-        warn(f"winget exit code {result.returncode} — proovin edasi")
+        warn(f"winget exit code {result.returncode} — kontrollin, kas {friendly_name} on siiski olemas")
     elif result.returncode == 2316632107:
         info(f"{friendly_name} oli juba paigaldatud")
     refresh_path_from_registry()
@@ -214,6 +227,15 @@ def step_dotnet_sdk():
         fail("Skript vajab .NET 8 SDK-d. Loobun.")
     if IS_WINDOWS:
         winget_install("Microsoft.DotNet.SDK.8", ".NET 8 SDK")
+        # winget voib ebaonnestuda (nt 0x80072efd = ei saa serveriga uhendust).
+        # Ilma kontrollita kukuks skript hiljem segase FileNotFoundError-iga.
+        if not has_dotnet8():
+            fail(
+                ".NET 8 SDK paigaldus ebaonnestus (vt winget-i viga ulal). "
+                "Paigalda kasitsi: winget install --id Microsoft.DotNet.SDK.8 --source winget "
+                "ja kaivita skript uuesti uues konsoolis."
+            )
+        info(".NET 8 SDK paigaldatud")
     else:
         if has_command("brew"):
             run(["brew", "install", "--cask", "dotnet-sdk"])
@@ -230,6 +252,12 @@ def step_git():
     if not ask_yn("Paigaldada Git?"): fail("Skript vajab Git-i.")
     if IS_WINDOWS:
         winget_install("Git.Git", "Git for Windows")
+        if not has_command("git"):
+            fail(
+                "Git-i paigaldus ebaonnestus (vt winget-i viga ulal). "
+                "Paigalda kasitsi: winget install --id Git.Git --source winget "
+                "ja kaivita skript uuesti uues konsoolis."
+            )
     else:
         run(["xcode-select", "--install"], check=False)
 
